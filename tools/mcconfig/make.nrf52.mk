@@ -21,6 +21,8 @@ HOST_OS := $(shell uname)
 
 XS_GIT_VERSION ?= $(shell git -C $(MODDABLE) describe --tags --always --dirty 2> /dev/null)
 
+USE_USB ?= 0
+
 NRF_ROOT ?= $(HOME)/nrf5
 
 PLATFORM_DIR = $(MODDABLE)/build/devices/nrf52
@@ -102,6 +104,20 @@ else
 	else
 		LIB_DIR = $(BUILD_DIR)/tmp/nrf52/release/lib
 	endif
+endif
+
+ifeq ($(DEBUG),1)
+	ifeq ($(USE_USB),1)
+		DEBUGGER_USBD= -DUSE_DEBUGGER_USBD=1
+		FTDI_TRACE= -DUSE_FTDI_TRACE=0
+	else
+		DEBUGGER_USBD= -DUSE_DEBUGGER_USBD=0
+		FTDI_TRACE= -DUSE_FTDI_TRACE=1
+		CONNECT_XSBUG = serial2xsbug $(UPLOAD_PORT) 115200 8N1
+	endif
+else
+	DEBUGGER_USBD= -DUSE_DEBUGGER_USBD=0
+	FTDI_TRACE= -DUSE_FTDI_TRACE=0
 endif
 
 ifeq ($(MAKEFLAGS_JOBS),)
@@ -307,9 +323,9 @@ SDK_GLUE_OBJ = \
 	$(TMP_DIR)/xsmain.c.o \
 	$(TMP_DIR)/systemclock.c.o \
 	$(TMP_DIR)/debugger.c.o \
-	$(TMP_DIR)/ftdi_trace.c.o \
 	$(TMP_DIR)/main.c.o \
 	$(TMP_DIR)/debugger_usbd.c.o \
+	$(TMP_DIR)/ftdi_trace.c.o \
 	$(TMP_DIR)/app_usbd_vendor.c.o
 
 SDK_GLUE_HEADERS = \
@@ -555,7 +571,7 @@ C_DEFINES = \
 	-DkCommodettoBitmapFormat=$(DISPLAY) \
 	-DkPocoRotation=$(ROTATION) \
 	-DMODGCC=1 \
-	-DUSE_FTDI_TRACE=0
+	$(FTDI_TRACE)
 
 C_FLAGS=\
 	-c	\
@@ -569,12 +585,13 @@ C_FLAGS=\
 	-gdwarf-3 \
 	-gpubnames
 
+
 ifeq ($(DEBUG),1)
 	C_DEFINES += \
+		$(DEBUGGER_USBD) \
 		-DDEBUG=1 \
 		-DmxDebug=1 \
 		-DDEBUG_NRF \
-		-DUSE_DEBUGGER_USBD=1 \
 		-g3 \
 		-Os
 	C_FLAGS += $(HW_DEBUG_OPT)
@@ -687,10 +704,16 @@ allclean:
 	@echo "# rm $(MODDABLE)/build/tmp/nrf52"
 	-rm -rf $(MODDABLE)/build/tmp/nrf52
 
-# flash: all $(BIN_DIR)/xs_nrf52.hex
-# 	@echo Flashing: $(BIN_DIR)/xs_nrf52.hex
-# 	$(NRFJPROG) -f nrf52 --program $(BIN_DIR)/xs_nrf52.hex --sectorerase
-# 	$(NRFJPROG) -f nrf52 --reset
+flash: precursor $(BIN_DIR)/xs_nrf52.hex
+	@echo Flashing: $(BIN_DIR)/xs_nrf52.hex
+	$(NRFJPROG) -f nrf52 --program $(BIN_DIR)/xs_nrf52.hex --sectorerase
+	$(NRFJPROG) -f nrf52 --reset
+
+debugger:
+	serial2xsbug $(UPLOAD_PORT) 115200 8N1
+
+xbrin: flash debugger
+brin: flash xsbug
 
 # flash_softdevice:
 # 	@echo Flashing: s140_nrf52_7.0.1_softdevice.hex

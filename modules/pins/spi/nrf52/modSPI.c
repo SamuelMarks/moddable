@@ -150,20 +150,32 @@ void modSPIInit(modSPIConfiguration config)
 
 		config->spi_config.bit_order = NRF_DRV_SPI_BIT_ORDER_MSB_FIRST;
 
-		if (config->hz > 4000000)
-			config->spi_config.frequency = NRF_DRV_SPI_FREQ_8M;
+//			config->spi_config.frequency = NRF_DRV_SPI_FREQ_8M;
+
+		if (config->hz > 16000000)
+{
+ftdiTrace("32M spi");
+			config->spi_config.frequency = NRF_SPIM_FREQ_32M;
+}
+		else if (config->hz > 8000000)
+{
+ftdiTrace("16M spi");
+			config->spi_config.frequency = NRF_SPIM_FREQ_16M;
+}
+		else if (config->hz > 4000000)
+			config->spi_config.frequency = NRF_SPIM_FREQ_8M;
 		else if (config->hz > 2000000)
-			config->spi_config.frequency = NRF_DRV_SPI_FREQ_4M;
+			config->spi_config.frequency = NRF_SPIM_FREQ_4M;
 		else if (config->hz > 1000000)
-			config->spi_config.frequency = NRF_DRV_SPI_FREQ_2M;
+			config->spi_config.frequency = NRF_SPIM_FREQ_2M;
 		else if (config->hz > 500000)
-			config->spi_config.frequency = NRF_DRV_SPI_FREQ_1M;
+			config->spi_config.frequency = NRF_SPIM_FREQ_1M;
 		else if (config->hz > 250000)
-			config->spi_config.frequency = NRF_DRV_SPI_FREQ_500K;
+			config->spi_config.frequency = NRF_SPIM_FREQ_500K;
 		else if (config->hz > 125000)
-			config->spi_config.frequency = NRF_DRV_SPI_FREQ_250K;
+			config->spi_config.frequency = NRF_SPIM_FREQ_250K;
 		else
-			config->spi_config.frequency = NRF_DRV_SPI_FREQ_125K;
+			config->spi_config.frequency = NRF_SPIM_FREQ_125K;
 			
 		ret = nrf_spi_mngr_init(&gSPI0, &config->spi_config);
 		if (ret) {

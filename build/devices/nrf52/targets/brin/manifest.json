@@ -1,0 +1,89 @@
+{
+	"build": {
+		"USE_USB": "0"
+	},
+	"include": [
+		"$(MODULES)/drivers/ili9341/manifest.json",
+		"$(MODULES)/pins/digital/monitor/manifest.json",
+		"$(MODULES)/drivers/button/manifest.json",
+		"$(MODULES)/drivers/led/manifest.json",
+		"$(MODULES)/files/preference/manifest.json"
+	],
+	"modules": {
+		"setup/target": "./setup-target"
+	},
+	"preload": [
+		"setup/target"
+	],
+	"config": {
+		"screen": "ili9341",
+		"touch": "",
+		"autobacklight": 1,
+		"disp_pwr_en": 9,
+		"disp_led_on": 10,
+		"disp_reset": "NRF_GPIO_PIN_MAP(1,7)",
+
+		"led1_pin": 20,
+		"led2_pin": 24,
+		"led3_pin": 25,
+
+		"button1_pin": 13,
+		"button2_pin": 14,
+		"button3_pin": 15,
+		"button4_pin": 16,
+		"button5_pin": 17
+
+	},
+	"defines": {
+		"display": {
+			"power_pin": 9
+		},
+
+		"debugger": {
+			"tx_pin": "NRF_GPIO_PIN_MAP(0,30)",
+			"rx_pin": "NRF_GPIO_PIN_MAP(0,31)",
+			"baudrate": "NRF_UART_BAUDRATE_115200"
+		},
+		"spi": {
+			"interface": "2",
+			"hz": "4000000",
+			"miso_pin": -1,
+			"mosi_pin": 21,
+			"sck_pin": 23
+		},
+		"ili9341": {
+			"spi_port": 2,
+			"backlight_pin": 10,
+			"backlight_on": 1,
+			"width": 240,
+			"height": 240,
+			"hz": "4000000",
+			"cs_pin": 22,
+			"dc_pin": 19,
+			"rst_pin": "NRF_GPIO_PIN_MAP(1,7)",
+            "registers": [
+				"0x11, 0,",
+				"255, 120,",
+				"0x36, 1, 0x00,",
+				"0x3A, 1, 0x55,",
+				"0xB2, 5, 0x0C, 0x0C, 0x00, 0x33, 0x33,",
+				"0xB7, 1, 0x22,",
+				"0xBB, 1, 0x35,",
+				"0xC2, 1, 0x01,",
+				"0xC3, 1, 0x19,",
+				"0xC4, 1, 0x20,",
+				"0xC6, 1, 0x0F,",
+				"0xD0, 2, 0xA4, 0xA1,",
+				"0xD6, 1, 0xA1,",
+				"0xE0, 14, 0x70, 0x04, 0x08, 0x09, 0x09, 0x05, 0x2A, 0x33, 0x41, 0x07, 0x13, 0x13, 0x29, 0x2F,",
+				"0xE1, 14, 0x70, 0x03, 0x00, 0x0A, 0x09, 0x06, 0x2B, 0x34, 0x41, 0x07, 0x12, 0x14, 0x28, 0x2E,",
+				"0x21, 0,",
+				"0x29, 0,",
+				"0x2A, 4, 0x00, 0x00, 0x00, 0xEF,",
+				"0x2B, 4, 0x00, 0x00, 0x00, 0xEF,",
+				"0x35, 0,",
+				"255, 0"
+            ]
+		}
+	}
+}

@@ -29,7 +29,7 @@
 
 static uint8_t ftBuf[128];
 
-nrfx_uart_config_t gDebuggerUartConfig = {
+nrfx_uart_config_t gUartConfig = {
 	.pseltxd = MODDEF_DEBUGGER_TX_PIN,
 	.pselrxd = MODDEF_DEBUGGER_RX_PIN,
 	.pselcts = -1,
@@ -40,23 +40,19 @@ nrfx_uart_config_t gDebuggerUartConfig = {
 	.baudrate = MODDEF_DEBUGGER_BAUDRATE,
 	.interrupt_priority = UART_DEFAULT_CONFIG_IRQ_PRIORITY };
 		
-nrfx_uart_t gDebuggerUart = {
+nrfx_uart_t gUart = {
     .p_reg        = NRFX_CONCAT_2(NRF_UART, 0),
     .drv_inst_idx = NRFX_CONCAT_3(NRFX_UART, 0, _INST_IDX),
 };
 
-void ftdiTraceInit() {
-	ret_code_t ret;
-
-	ret = nrfx_uart_init(&gDebuggerUart, &gDebuggerUartConfig, NULL);
+void ftdiTraceInit()
+{
+	nrfx_uart_init(&gUart, &gUartConfig, NULL);
 }
 
 static void ftdiTx(uint8_t *buffer)
 {
-	while (nrfx_uart_tx_in_progress(&gDebuggerUart))
-		taskYIELD();
-
-	nrfx_uart_tx(&gDebuggerUart, buffer, c_strlen(buffer));
+	nrfx_uart_tx(&gUart, buffer, c_strlen(buffer));
 }
 
 void ftdiTrace(const char *msg)

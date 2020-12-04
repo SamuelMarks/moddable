@@ -127,6 +127,9 @@ void setupDebugger() {
 	xTaskCreate(debug_task, "debug", DEBUGGER_STACK/sizeof(StackType_t), NULL, 8, NULL);
 }
 
+void flushDebugger() {
+}
+
 void modLog_transmit(const char *msg)
 {
 	int ret;
@@ -152,9 +155,6 @@ void ESP_putc(int c) {
 	uint8_t ch;
 
 	ch = c;
-	while (nrfx_uart_tx_in_progress(&gDebuggerUart))
-		taskYIELD();
-
 	while (NRF_ERROR_BUSY == (ret = nrfx_uart_tx(&gDebuggerUart, &ch, 1)))
 		taskYIELD();
 

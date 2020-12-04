@@ -1,4 +1,7 @@
 {
+	"include": [
+        "$(MODULES)/files/preference/manifest.json"
+	],
 	"modules": {
 		"*": [
 			"$(MODULES)/base/time/*",

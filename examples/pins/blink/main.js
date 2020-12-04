@@ -21,7 +21,7 @@ import Digital from "pins/digital";
 let count = 0;
 Timer.repeat(() => {
 	trace(`repeat ${++count} \n`);
-	Digital.write(2, ~count & 1);
-	Digital.write(16, count & 1);
-}, 200);
+	Digital.write(20, ~count & 1);
+	Digital.write(24, count & 1);
+}, 1000);
 
