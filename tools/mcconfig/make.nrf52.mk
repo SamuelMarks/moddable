@@ -25,6 +25,9 @@ USE_USB ?= 0
 
 NRF_ROOT ?= $(HOME)/nrf5
 
+UPLOAD_SPEED ?= 921600
+DEBUGGER_SPEED ?= 460800
+
 PLATFORM_DIR = $(MODDABLE)/build/devices/nrf52
 
 NRF_SERIAL_PORT ?= /dev/cu.usbmodem0000000000001
@@ -109,15 +112,15 @@ endif
 ifeq ($(DEBUG),1)
 	ifeq ($(USE_USB),1)
 		DEBUGGER_USBD= -DUSE_DEBUGGER_USBD=1
-		FTDI_TRACE= -DUSE_FTDI_TRACE=0
+		FTDI_TRACE ?= -DUSE_FTDI_TRACE=0
 	else
 		DEBUGGER_USBD= -DUSE_DEBUGGER_USBD=0
-		FTDI_TRACE= -DUSE_FTDI_TRACE=1
-		CONNECT_XSBUG = serial2xsbug $(UPLOAD_PORT) 115200 8N1
+		FTDI_TRACE ?= -DUSE_FTDI_TRACE=1
+		CONNECT_XSBUG = serial2xsbug $(UPLOAD_PORT) $(DEBUGGER_SPEED) 8N1
 	endif
 else
 	DEBUGGER_USBD= -DUSE_DEBUGGER_USBD=0
-	FTDI_TRACE= -DUSE_FTDI_TRACE=0
+	FTDI_TRACE ?= -DUSE_FTDI_TRACE=0
 endif
 
 ifeq ($(MAKEFLAGS_JOBS),)
@@ -704,13 +707,15 @@ allclean:
 	@echo "# rm $(MODDABLE)/build/tmp/nrf52"
 	-rm -rf $(MODDABLE)/build/tmp/nrf52
 
+NRFJPROG_ARGS = -f nrf52 --qspicustominit
 flash: precursor $(BIN_DIR)/xs_nrf52.hex
 	@echo Flashing: $(BIN_DIR)/xs_nrf52.hex
-	$(NRFJPROG) -f nrf52 --program $(BIN_DIR)/xs_nrf52.hex --sectorerase
-	$(NRFJPROG) -f nrf52 --reset
+	$(NRFJPROG) $(NRFJPROG_ARGS) --program $(BIN_DIR)/xs_nrf52.hex --qspisectorerase --sectorerase
+	$(NRFJPROG) $(NRFJPROG_ARGS) --verify $(BIN_DIR)/xs_nrf52.hex
+	$(NRFJPROG) --reset
 
 debugger:
-	serial2xsbug $(UPLOAD_PORT) 115200 8N1
+	serial2xsbug $(UPLOAD_PORT) $(DEBUGGER_SPEED) 8N1
 
 xbrin: flash debugger
 brin: flash xsbug
@@ -744,7 +749,7 @@ dfu-package: $(BIN_DIR)/xs_nrf52-merged.hex
 
 installDFU: all dfu-package
 	@echo "# Flashing $<"
-	adafruit-nrfutil --verbose dfu serial --package $(BIN_DIR)/dfu-package.zip -p $(NRF_SERIAL_PORT) -b 115200 --singlebank --touch 1200
+	adafruit-nrfutil --verbose dfu serial --package $(BIN_DIR)/dfu-package.zip -p $(NRF_SERIAL_PORT) -b $(UPLOAD_SPEED) --singlebank --touch 1200
 
 xsbug:
 	$(KILL_SERIAL_2_XSBUG)

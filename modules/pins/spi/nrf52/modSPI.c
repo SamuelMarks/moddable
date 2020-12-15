@@ -86,10 +86,13 @@ void spi_callback(uint32_t status, void *refcon)
 		xsTraceLeftBytes(&status, 4, "spi");
 		xsEndHost(config->the);
 	}
+
+CRITICAL_REGION_ENTER();
+//xSemaphoreTakeFromISR(gSPIMutex, &xHigherPriorityTaskWoken);
 	if (gSPIDataCount <= 0) {
 		gSPIDataCount = -1;
 		gSPIData = NULL;
-		return;
+		goto done;
 	}
 
 	loaded = (gSPIBufferLoader)(gSPIData, (gSPIDataCount <= MODDEF_SPI_BUFFERSIZE) ? gSPIDataCount : MODDEF_SPI_BUFFERSIZE, &bitsOut);
@@ -117,6 +120,14 @@ void spi_callback(uint32_t status, void *refcon)
 	config->transaction.number_of_transfers = transfers;
 	config->transaction.p_required_spi_cfg = NULL;
 	nrf_spi_mngr_schedule(&gSPI0, &config->transaction);
+done:
+//xHigherPriorityTaskWoken = false;
+//xSemaphoreGiveFromISR(gSPIMutex, &xHigherPriorityTaskWoken);
+//portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+CRITICAL_REGION_EXIT();
+//if (gFlushHandle)
+//	xTaskResumeFromISR(gFlushHandle);
+	
 }
 
 

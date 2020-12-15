@@ -33,6 +33,7 @@
 #ifdef mxDebug
 
 #define DEBUGGER_STACK	768
+#define kDebuggerTaskPriority	2
 
 #ifndef MODDEF_DEBUGGER_RX_PIN
 	#define MODDEF_DEBUGGER_RX_PIN	31
@@ -65,7 +66,7 @@ static uint32_t xx_rx_data_count = 0;
 static uint32_t xx_tx_drv_err = 0;
 
 #define DEBUG_QUEUE_LEN			8
-#define DEBUG_QUEUE_ITEM_SIZE           4
+#define DEBUG_QUEUE_ITEM_SIZE   4
 static QueueHandle_t gUARTQueue;
 
 #define DEBUG_TASK_CREATED    6
@@ -124,7 +125,7 @@ void setupDebugger() {
 
 	ret = nrfx_uart_init(&gDebuggerUart, &gDebuggerUartConfig, uart_handler);
 
-	xTaskCreate(debug_task, "debug", DEBUGGER_STACK/sizeof(StackType_t), NULL, 8, NULL);
+	xTaskCreate(debug_task, "debug", DEBUGGER_STACK/sizeof(StackType_t), NULL, kDebuggerTaskPriority, NULL);
 }
 
 void flushDebugger() {

@@ -33,7 +33,8 @@ globalThis.Host = {
 			});
 		}
 	},
-	Button: class {
+	Button: {
+		Default: class {
 		constructor(options) {
 			return new Button({
 				...options,
@@ -41,6 +42,7 @@ globalThis.Host = {
 				pin: config.button1_pin,
 				mode: Digital.InputPullUp,
 			});
+			}
 		}
 	},
 	pins: {

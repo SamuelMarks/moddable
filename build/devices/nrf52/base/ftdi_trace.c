@@ -57,7 +57,14 @@ static void ftdiTx(uint8_t *buffer)
 
 void ftdiTrace(const char *msg)
 {
-	snprintf(ftBuf, sizeof(ftBuf), "%s\n", msg);
+//	snprintf(ftBuf, sizeof(ftBuf), "%s\n", msg);
+	snprintf(ftBuf, sizeof(ftBuf), "[%p] %s\n", xTaskGetCurrentTaskHandle(), msg);
+	ftdiTx(ftBuf);
+}
+
+void ftdiTrace2(const char *msg, const char *msg2)
+{
+	snprintf(ftBuf, sizeof(ftBuf), "%s %s\n", msg, msg2);
 	ftdiTx(ftBuf);
 }
 
@@ -67,9 +74,16 @@ void ftdiTraceAndHex(const char *msg, int i)
 	ftdiTx(ftBuf);
 }
 
+void ftdiTraceAndHex2(const char *msg, int i, int j)
+{
+	snprintf(ftBuf, sizeof(ftBuf), "%s 0x%02x 0x%02x\n", msg, i, j);
+	ftdiTx(ftBuf);
+}
+
 void ftdiTraceAndInt(const char *msg, int i)
 {
-	snprintf(ftBuf, sizeof(ftBuf), "%s %d\n", msg, i);
+//	snprintf(ftBuf, sizeof(ftBuf), "%s %d\n", msg, i);
+	snprintf(ftBuf, sizeof(ftBuf), "[%p] %s %d\n", xTaskGetCurrentTaskHandle(), msg, i);
 	ftdiTx(ftBuf);
 }
 
@@ -186,6 +200,7 @@ void ftdiTraceAndCtx(const char *msg, app_usbd_vendor_ctx_t *ctx) {
 #else
 	void ftdiTraceInit() {}
 	void ftdiTrace(const char *msg) {}
+	void ftdiTrace2(const char *msg, const char *msg2) {}
 	void ftdiTraceInt(int i) {}
 	void ftdiTraceChar(int c) {}
 	void ftdiTraceAndHex(const char *msg, int i) {}

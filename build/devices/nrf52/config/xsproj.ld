@@ -3,22 +3,10 @@
 SEARCH_DIR(.)
 GROUP(-lgcc -lc -lnosys)
 
-/*
 MEMORY
 {
   FLASH (rx) : ORIGIN = 0x27000, LENGTH = 0xcb000
-  PREFERENCE (rx) : ORIGIN = 0xF2000, LENGTH = 0x2000
-  RAM (rwx) :  ORIGIN = 0x20004200, LENGTH = 0x20040000-0x20004200
-  NOINIT (rwx) :  ORIGIN = 0x20004000, LENGTH = 0x200
-}
-
-PROVIDE(_MODPREF_start = 0xF2000);
-PROVIDE(_MODDABLE_start = 0x27000);
-*/
-MEMORY
-{
-/*  FLASH (rx) : ORIGIN = 0x12000000, LENGTH = 0x800000 */
-  FLASH (rx) : ORIGIN = 0x27000, LENGTH = 0xcb000
+  FLASH2 (rx) : ORIGIN = 0x12000000, LENGTH = 0x800000
   PREFERENCE (rx) : ORIGIN = 0xF2000, LENGTH = 0x2000
   RAM (rwx) :  ORIGIN = 0x20004200, LENGTH = 0x20040000-0x20004200
   NOINIT (rwx) :  ORIGIN = 0x20004000, LENGTH = 0x200
@@ -35,8 +23,26 @@ SECTIONS
 {
   . = ALIGN(4);
 
-  .rodata.str : { *(.rodata.str.1.4) } > FLASH
-  .xs6ro2 : { *(.xs6ro*) } > FLASH
+  .rodata.str.1 : { *(.rodata.str.1.1) } > FLASH
+	
+} INSERT AFTER .data;
+
+SECTIONS
+{
+  . = ALIGN(4);
+
+  .xs6ro2 : { *(.xs6ro*) } > FLASH2
+  .rodata.str.4 : { *(.rodata.str.1.4) } > FLASH2
+  .rodata.resources : {
+		*(.rodata.resources)
+		*(.rodata._*)
+	} > FLASH2
+  .xs_lib_flash :
+  {
+    PROVIDE(__start_xs_lib = .);
+    *(SORT(.flash*))
+    PROVIDE(__stop_xs_lib = .);
+  } > FLASH2
   .irom.text : {
 		*(.irom.str)
 		*(.irom0.str.*)
@@ -46,7 +52,8 @@ SECTIONS
 		*(.irom1.literal)
 		*(.irom1.text.literal)
 		*(.irom1.text)
-	} > FLASH
+	} > FLASH2
+
 	
 } INSERT AFTER .data;
 
@@ -169,13 +176,6 @@ SECTIONS
     KEEP(*(.nrf_balloc))
     PROVIDE(__stop_nrf_balloc = .);
   } > FLASH
-  .xs_lib_flash :
-  {
-    PROVIDE(__start_xs_lib = .);
-    *(SORT(.flash*))
-    PROVIDE(__stop_xs_lib = .);
-  } > FLASH
-
 } INSERT AFTER .text
 
 /* located in the nRF52 sdk at modules/nrfx/mdk/nrf_common.ld */
