@@ -38,6 +38,7 @@ class SecureHealthThermometerServer extends BLEServer {
 	onAuthenticated(params) {
 		this.authenticated = true;
 		this.bonded = params.bonded;
+		trace(`onAuthenticated bonded = ${this.bonded}\n`);
 		if (this.characteristic)
 			this.startMeasurements();
 	}
