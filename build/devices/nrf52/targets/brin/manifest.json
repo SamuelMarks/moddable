@@ -48,19 +48,19 @@
 			"baudrate": "NRF_UART_BAUDRATE_921600"
 		},
 		"spi": {
-			"interface": "2",
-			"hz": "4000000",
+			"interface": "3",
+			"hz": "8000000",
 			"miso_pin": -1,
 			"mosi_pin": 21,
 			"sck_pin": 23
 		},
 		"ili9341": {
-			"spi_port": 2,
+			"spi_port": 3,
 			"backlight_pin": 10,
 			"backlight_on": 1,
 			"width": 240,
 			"height": 240,
-			"hz": "4000000",
+			"hz": "8000000",
 			"cs_pin": 22,
 			"dc_pin": 19,
 			"rst_pin": "NRF_GPIO_PIN_MAP(1,7)",

@@ -219,7 +219,6 @@ INC_DIRS += \
 	$(NRF52_SDK_ROOT)/components/libraries/scheduler \
 	$(NRF52_SDK_ROOT)/components/libraries/serial \
 	$(NRF52_SDK_ROOT)/components/libraries/sortlist \
-	$(NRF52_SDK_ROOT)/components/libraries/spi_mngr \
 	$(NRF52_SDK_ROOT)/components/libraries/stack_info \
 	$(NRF52_SDK_ROOT)/components/libraries/strerror \
 	$(NRF52_SDK_ROOT)/components/libraries/twi_sensor \
@@ -429,7 +428,6 @@ NRF_CRYPTO_BACKEND_CC310_OBJECTS = \
 NRF_DRIVERS = \
 	$(LIB_DIR)/nrf_drv_clock.c.o \
 	$(LIB_DIR)/nrf_drv_power.c.o \
-	$(LIB_DIR)/nrf_drv_spi.c.o \
 	$(LIB_DIR)/nrf_drv_twi.c.o \
 	$(LIB_DIR)/nrf_drv_uart.c.o \
 	$(LIB_DIR)/nrfx_atomic.c.o \
@@ -468,7 +466,6 @@ NRF_LIBRARIES = \
 	$(LIB_DIR)/nrf_queue.c.o \
 	$(LIB_DIR)/nrf_ringbuf.c.o \
 	$(LIB_DIR)/nrf_section_iter.c.o \
-	$(LIB_DIR)/nrf_spi_mngr.c.o \
 	$(LIB_DIR)/nrf_strerror.c.o \
 	$(LIB_DIR)/nrf_twi_mngr.c.o \
 	$(LIB_DIR)/nrf_twi_sensor.c.o

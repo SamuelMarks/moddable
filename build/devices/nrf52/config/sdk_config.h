@@ -3163,14 +3163,14 @@
  
 
 #ifndef NRFX_SPIM2_ENABLED
-#define NRFX_SPIM2_ENABLED 1
+#define NRFX_SPIM2_ENABLED 0
 #endif
 
 // <q> NRFX_SPIM3_ENABLED  - Enable SPIM3 instance
  
 
 #ifndef NRFX_SPIM3_ENABLED
-#define NRFX_SPIM3_ENABLED 0
+#define NRFX_SPIM3_ENABLED 1
 #endif
 
 // <q> NRFX_SPIM_EXTENDED_ENABLED  - Enable extended SPIM features
@@ -3369,7 +3369,7 @@
 // <e> NRFX_SPI_ENABLED - nrfx_spi - SPI peripheral driver
 //==========================================================
 #ifndef NRFX_SPI_ENABLED
-#define NRFX_SPI_ENABLED 1
+#define NRFX_SPI_ENABLED 0
 #endif
 // <q> NRFX_SPI0_ENABLED  - Enable SPI0 instance
  
@@ -3389,7 +3389,7 @@
  
 
 #ifndef NRFX_SPI2_ENABLED
-#define NRFX_SPI2_ENABLED 1
+#define NRFX_SPI2_ENABLED 0
 #endif
 
 // <o> NRFX_SPI_MISO_PULL_CFG  - MISO pin pull configuration.
@@ -4073,7 +4073,7 @@
 // <e> NRFX_UARTE_ENABLED - nrfx_uarte - UARTE peripheral driver
 //==========================================================
 #ifndef NRFX_UARTE_ENABLED
-#define NRFX_UARTE_ENABLED 1
+#define NRFX_UARTE_ENABLED 0
 #endif
 // <o> NRFX_UARTE0_ENABLED - Enable UARTE0 instance 
 #ifndef NRFX_UARTE0_ENABLED
@@ -5278,7 +5278,7 @@
 // <e> SPI2_ENABLED - Enable SPI2 instance
 //==========================================================
 #ifndef SPI2_ENABLED
-#define SPI2_ENABLED 1
+#define SPI2_ENABLED 0
 #endif
 // <q> SPI2_USE_EASY_DMA  - Use EasyDMA
  
@@ -11495,12 +11495,6 @@
 //==========================================================
 
 #define NRF_SERIAL_ENABLED 1
-/*
-#define NRF_UARTE_ENABLED 1
-#define NRFX_UARTE_PRESENT
-#define NRFX_UARTE0_INST_IDX 0
-#define UART0_USE_EASY_DMA	true
-*/
 // <<< end of configuration section >>>
 #endif //SDK_CONFIG_H
 
