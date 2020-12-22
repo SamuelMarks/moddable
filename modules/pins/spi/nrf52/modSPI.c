@@ -39,18 +39,15 @@
 	#define MODDEF_SPI_SCK_PIN	NRF_GPIO_PIN_MAP(1,14)
 #endif
 
-// SPIM DMA max 16 bytes
-// modules/nrfx/mdk/nrf52840_peripherals.h
-#define SPI_CHUNKSIZE	SPIM3_EASYDMA_MAXCNT_SIZE
+#define SPI_CHUNKSIZE	(420 * 8)
 
 #ifndef MODDEF_SPI_BUFFERSIZE
-//	#define MODDEF_SPI_BUFFERSIZE	(240 * kSPITransfers)
-	#define MODDEF_SPI_BUFFERSIZE	(SPI_CHUNKSIZE * kSPITransfers)
+	#define MODDEF_SPI_BUFFERSIZE	SPI_CHUNKSIZE
 #endif
 
-//#if MODDEF_SPI_BUFFERSIZE < 240
-//	#error "SPI buffer must be at least 240 bytes"
-//#endif
+#if MODDEF_SPI_BUFFERSIZE < 240
+	#error "SPI buffer must be at least 240 bytes"
+#endif
 
 typedef uint16_t (*modSPIBufferLoader)(uint8_t *data, uint16_t bytes, uint16_t *bitsOut);
 
@@ -75,60 +72,66 @@ static uint8_t gSPIInited;
 
 static const nrfx_spim_t gSPI = NRFX_SPIM_INSTANCE(MODDEF_SPI_INTERFACE);
 
-void spi_callback(nrfx_spim_evt_t const *event, void *refcon)
-{
-	modSPIConfiguration config = (modSPIConfiguration)refcon;
+static void spi_callback(nrfx_spim_evt_t const *event, void *refcon);
+
+static int loadData(modSPIConfiguration config, uint8_t idx) {
 	uint16_t loaded, bitsOut;
-	nrfx_err_t err;
 
-	if (event) {
-	switch (event->type) {
-		case NRFX_SPIM_EVENT_DONE:
-			if (++config->transIdx < config->numTransfers) {
-				err = nrfx_spim_xfer(&gSPI, &config->transfer[config->transIdx], 0);
-				if (err)
-					ftdiTraceAndHex("spim_xfer err", err);
-				return;
-			}
-			break;
-		default:
-			break;
-	}
-	}
+	if (gSPIDataCount <= 0)
+		return 0;
 
-	CRITICAL_REGION_ENTER();
-	if (gSPIDataCount <= 0) {
-		gSPIDataCount = -1;
-		gSPIData = NULL;
-		goto done;
-	}
-
+	config->loadIdx = idx;
 	loaded = (gSPIBufferLoader)(gSPIData, (gSPIDataCount <= MODDEF_SPI_BUFFERSIZE) ? gSPIDataCount : MODDEF_SPI_BUFFERSIZE, &bitsOut);
 	gSPIDataCount -= loaded;
 	gSPIData += loaded;
+	config->transfer[idx].tx_length = loaded;
+	config->transfer[idx].rx_length = loaded;
 
-	uint16_t i, transfers = (loaded + SPI_CHUNKSIZE - 1) / SPI_CHUNKSIZE;
-	uint8_t *from = (uint8_t *)gSPITxBuffer;
-	for (i = 0; i < transfers; i++) {
-		uint16_t use = (loaded > SPI_CHUNKSIZE) ? SPI_CHUNKSIZE : loaded;
+	config->loaded[idx] = 1;
+	return (gSPIDataCount > 0);
+}
 
-		config->transfer[i].p_tx_buffer = (uint8_t*)from;
-		config->transfer[i].tx_length = use;
-		config->transfer[i].p_rx_buffer = gSPIRxBuffer;
-		config->transfer[i].rx_length = use;
-
-		loaded -= use;
-		from += use;
-	}
-	config->numTransfers = transfers;
+static void startBulk(modSPIConfiguration config) {
 	config->transIdx = 0;
+	if (loadData(config, 0))
+		loadData(config, 1);
 
-	err = nrfx_spim_xfer(&gSPI, &config->transfer[config->transIdx], 0);
-	if (err) ftdiTraceAndHex("spim_xfer err", err);
+	spi_callback(NULL, config);
+}
+
+void spi_callback(nrfx_spim_evt_t const *event, void *refcon)
+{
+	modSPIConfiguration config = (modSPIConfiguration)refcon;
+	nrfx_err_t err;
+	uint8_t alt = 0;
+
+	CRITICAL_REGION_ENTER();
+
+	if (event) {
+		switch (event->type) {
+			case NRFX_SPIM_EVENT_DONE:
+				config->loaded[config->transIdx] = 0;
+				config->transIdx = !config->transIdx;
+				break;
+			default:
+				break;
+		}
+	}
+
+	if (gSPIDataCount == 0 && !config->loaded[config->transIdx])
+		gSPIDataCount = -1;
 
 done:
 	CRITICAL_REGION_EXIT();
-allDone:
+
+	if (config->loaded[config->transIdx]) {
+		// start transfer
+		err = nrfx_spim_xfer(&gSPI, &config->transfer[config->transIdx], 0);
+	}
+
+	if (!config->loaded[!config->transIdx])
+		loadData(config, !config->transIdx);
+
 	return;
 }
 
@@ -149,6 +152,7 @@ void modSPIInit(modSPIConfiguration config)
 		config->spi_config.orc = 0xFF;
 		config->spi_config.bit_order = NRF_SPIM_BIT_ORDER_MSB_FIRST;
 
+//config->mode = 3;
 		switch (config->mode) {
 			case 3:
 				config->spi_config.mode = NRF_SPIM_MODE_3;	// CPOL = 1, CPHA = 1
@@ -196,8 +200,17 @@ ftdiTrace("16M spi");
 			xsEndHost(config->the);
 		}
 
-		gSPITxBuffer = (uint32_t *)c_malloc(MODDEF_SPI_BUFFERSIZE * 2);
-		gSPIRxBuffer = (uint32_t *)(MODDEF_SPI_BUFFERSIZE + (uintptr_t)gSPITxBuffer);
+		// trans and rcv organized as 2xTX buffer and 1xRX buffer
+		gSPITxBuffer = (uint32_t *)c_malloc(MODDEF_SPI_BUFFERSIZE * 3);
+		gSPIRxBuffer = (uint32_t *)((MODDEF_SPI_BUFFERSIZE * 2) + (uintptr_t)gSPITxBuffer);
+		config->transfer[0].p_tx_buffer = (uint8_t*)gSPITxBuffer;
+		config->transfer[0].tx_length = 0;
+		config->transfer[0].p_rx_buffer = gSPIRxBuffer;
+		config->transfer[0].rx_length = 0;
+		config->transfer[1].p_tx_buffer = (uint8_t*)gSPITxBuffer + MODDEF_SPI_BUFFERSIZE;
+		config->transfer[1].tx_length = 0;
+		config->transfer[1].p_rx_buffer = gSPIRxBuffer;
+		config->transfer[1].rx_length = 0;
 
 		gSPIInited = true;
 	}
@@ -246,7 +259,7 @@ void modSPIActivateConfiguration(modSPIConfiguration config)
 // data must be long aligned (doesn't matter on qca4020 or gecko)
 uint16_t IRAM_ATTR modSpiLoadBufferAsIs(uint8_t *data, uint16_t bytes, uint16_t *bitsOut)
 {
-	uint32_t *from = (uint32_t *)data, *to = gSPITxBuffer;
+	uint32_t *from = (uint32_t *)data, *to = (uint32_t *)(gSPITxBuffer + (gConfig->loadIdx * SPI_CHUNKSIZE));
 	uint8_t longs;
 	uint16_t result = bytes;
 
@@ -282,7 +295,7 @@ uint16_t IRAM_ATTR modSpiLoadBufferAsIs(uint8_t *data, uint16_t bytes, uint16_t 
 uint16_t IRAM_ATTR modSpiLoadBufferSwap16(uint8_t *data, uint16_t bytes, uint16_t *bitsOut)
 {
 	uint32_t *from = (uint32_t *)data;
-	uint32_t *to = gSPITxBuffer;
+	uint32_t *to = (uint32_t *)(gSPITxBuffer + (gConfig->loadIdx * SPI_CHUNKSIZE));
 	const uint32_t mask = 0x00ff00ff;
 	uint32_t twoPixels;
 	uint16_t result = bytes;
@@ -322,7 +335,7 @@ uint16_t IRAM_ATTR modSpiLoadBufferSwap16(uint8_t *data, uint16_t bytes, uint16_
 uint16_t IRAM_ATTR modSpiLoadBufferRGB565LEtoRGB444(uint8_t *data, uint16_t bytes, uint16_t *bitsOut)
 {
 	uint16_t *from = (uint16_t *)data;
-	uint8_t *to = (uint8_t *)gSPITxBuffer;
+	uint8_t *to = (uint8_t *)(gSPITxBuffer + (gConfig->loadIdx * SPI_CHUNKSIZE));
 	uint16_t remain;
 
 	if (bytes > MODDEF_SPI_BUFFERSIZE)
@@ -358,7 +371,7 @@ uint16_t IRAM_ATTR modSpiLoadBufferRGB565LEtoRGB444(uint8_t *data, uint16_t byte
 uint16_t IRAM_ATTR modSpiLoadBufferRGB332To16BE(uint8_t *data, uint16_t bytes, uint16_t *bitsOut)
 {
 	uint8_t *from = (uint8_t *)data;
-	uint32_t *to = gSPITxBuffer;
+	uint32_t *to = (uint32_t *)(gSPITxBuffer + (gConfig->loadIdx * SPI_CHUNKSIZE));
 	uint16_t remain;
 
 	if (bytes > (MODDEF_SPI_BUFFERSIZE >> 1))
@@ -403,7 +416,7 @@ uint16_t IRAM_ATTR modSpiLoadBufferRGB332To16BE(uint8_t *data, uint16_t bytes, u
 uint16_t IRAM_ATTR modSpiLoadBufferGray256To16BE(uint8_t *data, uint16_t bytes, uint16_t *bitsOut)
 {
 	uint8_t *from = (uint8_t *)data;
-	uint32_t *to = gSPITxBuffer;
+	uint32_t *to = (uint32_t *)(gSPITxBuffer + (gConfig->loadIdx * SPI_CHUNKSIZE));
 	uint16_t remain;
 
 	if (bytes > (MODDEF_SPI_BUFFERSIZE >> 1))
@@ -441,7 +454,7 @@ uint16_t IRAM_ATTR modSpiLoadBufferGray256To16BE(uint8_t *data, uint16_t bytes, 
 uint16_t IRAM_ATTR modSpiLoadBufferGray16To16BE(uint8_t *data, uint16_t bytes, uint16_t *bitsOut)
 {
 	uint8_t *from = (uint8_t *)data;
-	uint32_t *to = gSPITxBuffer;
+	uint32_t *to = (uint32_t *)(gSPITxBuffer + (gConfig->loadIdx * SPI_CHUNKSIZE));
 	uint16_t i;
 
 	if (bytes > (MODDEF_SPI_BUFFERSIZE >> 2))
@@ -485,17 +498,12 @@ void modSPITxRx(modSPIConfiguration config, uint8_t *data, uint16_t count)
 
 	gSPIDataCount = 0;
 	config->transIdx = 0;
-	config->numTransfers = 1;
 
 	c_memcpy(gSPITxBuffer, data, count);
-	config->transfer[0].p_tx_buffer = (uint8_t*)gSPITxBuffer;
 	config->transfer[0].tx_length = count;
-	config->transfer[0].p_rx_buffer = (uint8_t*)gSPIRxBuffer;
 	config->transfer[0].rx_length = count;
 
-//	ret = nrf_spi_mngr_perform(&gSPI0, NULL, config->transfer, 1, NULL);
-	uint32_t				flags;
-	ret = nrfx_spim_xfer(&gSPI, config->transfer, 0);
+	ret = nrfx_spim_xfer(&gSPI, &config->transfer[0], 0);
 	if (ret) {
 		xsBeginHost(config->the);
 		xsTraceLeft("spiTxRx - status non zero", "spi");
@@ -526,9 +534,7 @@ static void modSPITxCommon(modSPIConfiguration config, uint8_t *data, uint16_t c
 	gSPIData = data;
 	gSPIDataCount = count;
 
-	// start the spi transmit
-	spi_callback(0, config);
-//	ftdiTraceAndInt("after spi_callback - transfers set up:", config->numTransfers);
+	startBulk(config);
 
 	if (config->sync)
 		modSPIFlush();
