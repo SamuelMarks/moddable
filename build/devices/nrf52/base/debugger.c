@@ -32,8 +32,8 @@
 
 #ifdef mxDebug
 
-#define DEBUGGER_STACK	768
-#define kDebuggerTaskPriority	2
+#define DEBUGGER_STACK	2048
+#define kDebuggerTaskPriority	1
 
 #ifndef MODDEF_DEBUGGER_RX_PIN
 	#define MODDEF_DEBUGGER_RX_PIN	31
