@@ -237,8 +237,6 @@ void resetPrefs(void)
 
 	modSPIErase(kPreferencesStartOffset, kFlashSectorSize << 1);
 	modSPIWrite(kPreferencesStartOffset, sizeof(magic), (uint8_t *)&magic);
-
-	modPreferenceGive();
 }
 
 uint8_t findPrefsBlock(uint32_t *offset)
@@ -375,9 +373,6 @@ uint8_t modPreferenceSet(char *domain, char *key, uint8_t type, uint8_t *value, 
 		uint32_t srcOffset = prefsEnd & ~(kFlashSectorSize - 1);
 		uint32_t dstOffset = kPreferencesStartOffset + ((srcOffset == kPreferencesStartOffset) ? kFlashSectorSize : 0);
 		uint32_t srcOffsetSave = srcOffset;
-
-		srcOffset += kPreferencesStartOffset;
-		dstOffset += kPreferencesStartOffset;
 
 		if (!modSPIErase(dstOffset, kFlashSectorSize)) {
 			modLog("modSPIErase fail");
