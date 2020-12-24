@@ -26,7 +26,8 @@ USE_USB ?= 0
 NRF_ROOT ?= $(HOME)/nrf5
 
 UPLOAD_SPEED ?= 921600
-DEBUGGER_SPEED ?= 460800
+DEBUGGER_SPEED ?= 921600
+DEBUGGER_PORT ?= $(UPLOAD_PORT)
 
 PLATFORM_DIR = $(MODDABLE)/build/devices/nrf52
 
@@ -116,7 +117,7 @@ ifeq ($(DEBUG),1)
 	else
 		DEBUGGER_USBD= -DUSE_DEBUGGER_USBD=0
 		FTDI_TRACE ?= -DUSE_FTDI_TRACE=1
-		CONNECT_XSBUG = serial2xsbug $(UPLOAD_PORT) $(DEBUGGER_SPEED) 8N1
+		CONNECT_XSBUG = serial2xsbug $(DEBUGGER_PORT) $(DEBUGGER_SPEED) 8N1
 	endif
 else
 	DEBUGGER_USBD= -DUSE_DEBUGGER_USBD=0
@@ -704,7 +705,7 @@ allclean:
 	@echo "# rm $(MODDABLE)/build/tmp/nrf52"
 	-rm -rf $(MODDABLE)/build/tmp/nrf52
 
-NRFJPROG_ARGS = -f nrf52 --qspicustominit
+NRFJPROG_ARGS = -f nrf52 --qspiini $(PLATFORM_DIR)\config\QspiDefault.ini
 flash: precursor $(BIN_DIR)/xs_nrf52.hex
 	@echo Flashing: $(BIN_DIR)/xs_nrf52.hex
 	$(NRFJPROG) $(NRFJPROG_ARGS) --program $(BIN_DIR)/xs_nrf52.hex --qspisectorerase --sectorerase
@@ -712,7 +713,7 @@ flash: precursor $(BIN_DIR)/xs_nrf52.hex
 	$(NRFJPROG) --reset
 
 debugger:
-	serial2xsbug $(UPLOAD_PORT) $(DEBUGGER_SPEED) 8N1
+	serial2xsbug $(DEBUGGER_PORT) $(DEBUGGER_SPEED) 8N1
 
 xbrin: flash debugger
 brin: flash xsbug
