@@ -45,7 +45,20 @@ M4_PID = CAFE
 
 NRF52_SDK_ROOT = $(NRF52_SDK_PATH)
 NRF52_GNU_VERSION = 7.2.1
+
+NRFJPROG = "c:\Program Files\Nordic Semiconductor\nrf-command-line-tools\bin\nrfjprog"
 UF2CONV = $(NRF_ROOT)\uf2conv.py
+
+!IF "$(USE_USB)"==""
+USE_USB = 0
+!ENDIF
+
+!IF "$(UPLOAD_SPEED)"==""
+UPLOAD_SPEED = 921600
+!ENDIF
+!IF "$(DEBUGGER_SPEED)"==""
+DEBUGGER_SPEED = 921600
+!ENDIF
 
 #VERBOSE = 1
 
@@ -87,7 +100,7 @@ ECHO_GIT_AND_SIZE = $(PLATFORM_DIR)\config\echoGitTagAndSizeWindows.bat $(TMP_DI
 DO_XSBUG = tasklist /nh /fi "imagename eq xsbug.exe" | find /i "xsbug.exe" > nul || (start $(MODDABLE_TOOLS_DIR)\xsbug.exe)
 KILL_SERIAL_2_XSBUG =-tasklist /nh /fi "imagename eq serial2xsbug.exe" | (find /i "serial2xsbug.exe" > nul) && taskkill /f /t /im "serial2xsbug.exe" >nul 2>&1
 WAIT_FOR_NEW_SERIAL = $(PLATFORM_DIR)\config\waitForNewSerialWindows.bat 1 $(UF2_VOLUME_NAME) $(TMP_DIR)\_port.tmp $(M4_VID) $(M4_PID)
-SERIAL_2_XSBUG = echo Starting serial2xsbug. Type Ctrl-C twice after debugging app. && for /F "tokens=1" %%i in ( $(TMP_DIR)\_port.tmp ) do @$(MODDABLE_TOOLS_DIR)\serial2xsbug %%i 921600 8N1 -dtr
+SERIAL_2_XSBUG = echo Starting serial2xsbug. Type Ctrl-C twice after debugging app. && for /F "tokens=1" %%i in ( $(TMP_DIR)\_port.tmp ) do @$(MODDABLE_TOOLS_DIR)\serial2xsbug %%i $(DEBUGGER_SPEED) 8N1 -dtr
 NORESTART = -norestart
 !ELSE
 DO_XSBUG =
@@ -114,6 +127,19 @@ LIB_DIR = $(BUILD_DIR)\tmp\$(PLATFORMPATH)\debug\lib
 LIB_DIR = $(BUILD_DIR)\tmp\$(PLATFORMPATH)\instrument\lib
 !ELSE
 LIB_DIR = $(BUILD_DIR)\tmp\$(PLATFORMPATH)\release\lib
+!ENDIF
+
+!IF "$(DEBUG)"=="1"
+!IF "$(USE_USB)"=="1"
+DEBUGGER_USBD = -DUSE_DEBUGGER_USBD=1
+FTDI_TRACE = -DUSE_FTDI_TRACE=0
+!ELSE
+DEBUGGER_USBD = -DUSE_DEBUGGER_USBD=0
+FTDI_TRACE = -DUSE_FTDI_TRACE=1
+!ENDIF
+!ELSE
+DEBUGGER_USBD = -DUSE_DEBUGGER_USBD=0
+FTDI_TRACE = -DUSE_FTDI_TRACE=0
 !ENDIF
 
 CRYPTO_INCLUDES = \
@@ -174,7 +200,6 @@ SDK_INCLUDES = \
 	-I$(NRF52_SDK_ROOT)\components\libraries\ringbuf \
 	-I$(NRF52_SDK_ROOT)\components\libraries\scheduler \
 	-I$(NRF52_SDK_ROOT)\components\libraries\serial \
-	-I$(NRF52_SDK_ROOT)\components\libraries\spi_mngr \
 	-I$(NRF52_SDK_ROOT)\components\libraries\stack_info \
 	-I$(NRF52_SDK_ROOT)\components\libraries\strerror \
 	-I$(NRF52_SDK_ROOT)\components\libraries\twi_sensor \
@@ -276,7 +301,6 @@ NRF_CRYPTO_OBJ = \
 NRF_DRIVERS_OBJ = \
 	$(LIB_DIR)\nrf_drv_clock.o \
 	$(LIB_DIR)\nrf_drv_power.o \
-	$(LIB_DIR)\nrf_drv_spi.o \
 	$(LIB_DIR)\nrf_drv_twi.o \
 	$(LIB_DIR)\nrf_drv_uart.o \
 	$(LIB_DIR)\nrfx_atomic.o \
@@ -334,7 +358,6 @@ NRF_LIBRARIES_OBJ = \
 	$(LIB_DIR)\nrf_queue.o \
 	$(LIB_DIR)\nrf_ringbuf.o \
 	$(LIB_DIR)\nrf_section_iter.o \
-	$(LIB_DIR)\nrf_spi_mngr.o \
 	$(LIB_DIR)\nrf_strerror.o \
 	$(LIB_DIR)\nrf_twi_mngr.o \
 	$(LIB_DIR)\nrf_twi_sensor.o
@@ -489,13 +512,13 @@ C_DEFINES = \
 	-DkCommodettoBitmapFormat=$(DISPLAY) \
 	-DkPocoRotation=$(ROTATION) \
 	-DMODGCC=1 \
-	-DUSE_FTDI_TRACE=0 \
+	$(FTDI_TRACE) \
 	-fshort-enums
 !IF "$(INSTRUMENT)"=="1"
 C_DEFINES = $(C_DEFINES) -DMODINSTRUMENTATION=1 -DmxInstrument=1
 !ENDIF
 !IF "$(DEBUG)"=="1"
-C_DEFINES = $(C_DEFINES) -DmxDebug=1 -DDEBUG=1 -DDEBUG_NRF -DUSE_DEBUGGER_USBD=1 -g3 -Os
+C_DEFINES = $(C_DEFINES) -DmxDebug=1 -DDEBUG=1 -DDEBUG_NRF $(DEBUGGER_USBD) -g3 -Os
 !ELSE
 C_DEFINES = $(C_DEFINES) -Os -DUSE_WATCHDOG=0
 !ENDIF
@@ -594,6 +617,19 @@ clean:
 	echo $(LIB_DIR)
 	if exist $(LIB_DIR) del /s/q/f $(LIB_DIR)\*.* > NUL
 	if exist $(LIB_DIR) rmdir /s/q $(LIB_DIR)
+
+NRFJPROG_ARGS = -f nrf52 --qspiini $(PLATFORM_DIR)\config\QspiDefault.ini
+flash: precursor $(BIN_DIR)\xs_nrf52.hex
+	@echo Flashing: $(BIN_DIR)\xs_nrf52.hex
+	$(NRFJPROG) $(NRFJPROG_ARGS) --program $(BIN_DIR)\xs_nrf52.hex --qspisectorerase --sectorerase
+	$(NRFJPROG) $(NRFJPROG_ARGS) --verify $(BIN_DIR)\xs_nrf52.hex
+	$(NRFJPROG) --reset
+
+debugger:
+	$(DO_XSBUG)
+	$(MODDABLE_TOOLS_DIR)\serial2xsbug $(DEBUGGER_PORT) $(DEBUGGER_SPEED) 8N1 -dtr $(NORESTART)
+
+brin: flash debugger
 
 xsbug:
 	$(KILL_SERIAL_2_XSBUG)
