@@ -706,7 +706,7 @@ allclean:
 	@echo "# rm $(MODDABLE)/build/tmp/nrf52"
 	-rm -rf $(MODDABLE)/build/tmp/nrf52
 
-NRFJPROG_ARGS = -f nrf52 --qspiini $(PLATFORM_DIR)\config\QspiDefault.ini
+NRFJPROG_ARGS = -f nrf52 --qspiini $(PLATFORM_DIR)/config/QspiDefault.ini
 flash: precursor $(BIN_DIR)/xs_nrf52.hex
 	@echo Flashing: $(BIN_DIR)/xs_nrf52.hex
 	$(NRFJPROG) $(NRFJPROG_ARGS) --program $(BIN_DIR)/xs_nrf52.hex --qspisectorerase --sectorerase
