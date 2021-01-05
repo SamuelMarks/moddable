@@ -142,88 +142,85 @@ DEBUGGER_USBD = -DUSE_DEBUGGER_USBD=0
 FTDI_TRACE = -DUSE_FTDI_TRACE=0
 !ENDIF
 
-CRYPTO_INCLUDES = \
-	-I$(NRF52_SDK_ROOT)\components\libraries\crypto \
-	-I$(NRF52_SDK_ROOT)\components\libraries\crypto\backend\cc310 \
-	-I$(NRF52_SDK_ROOT)\components\libraries\crypto\backend\cc310_bl \
-	-I$(NRF52_SDK_ROOT)\components\libraries\crypto\backend\cifra \
-	-I$(NRF52_SDK_ROOT)\components\libraries\crypto\backend\nrf_hw \
-	-I$(NRF52_SDK_ROOT)\components\libraries\crypto\backend\mbedtls \
-	-I$(NRF52_SDK_ROOT)\components\libraries\crypto\backend\micro_ecc \
-	-I$(NRF52_SDK_ROOT)\components\libraries\crypto\backend\nrf_sw \
-	-I$(NRF52_SDK_ROOT)\components\libraries\crypto\backend\oberon \
-	-I$(NRF52_SDK_ROOT)\components\libraries\crypto\backend\optiga \
-	-I$(NRF52_SDK_ROOT)\external\nrf_cc310\include \
-	-I$(NRF52_SDK_ROOT)\external\nrf_cc310_bl\include
+GCC_INCLUDES=-iprefix $(NRF52_GCC_ROOT)\ \
+	-iwithprefix arm-none-eabi\include \
+	-iwithprefix arm-none-eabi\include\machine \
+	-iwithprefix lib\gcc\arm-none-eabi\$(NRF52_GNU_VERSION)\include \
+	-iwithprefix lib\gcc\arm-none-eabi\$(NRF52_GNU_VERSION)\include-fixed
 
-FREE_RTOS_INCLUDES = \
-	-I$(NRF52_SDK_ROOT)\external\freertos\portable\GCC\nrf52 \
-	-I$(NRF52_SDK_ROOT)\external\freertos\portable\CMSIS\nrf52 \
-	-I$(NRF52_SDK_ROOT)\external\freertos\source \
-	-I$(NRF52_SDK_ROOT)\external\freertos\source\include \
-	-I$(NRF52_SDK_ROOT)\external\freertos\source\portable\MemMang
 
-GCC_INCLUDES = \
-	-I$(NRF52_GCC_ROOT)\arm-none-eabi\include \
-	-I$(NRF52_GCC_ROOT)\arm-none-eabi\include\machine \
-	-I$(NRF52_GCC_ROOT)\lib\gcc\arm-none-eabi\$(NRF52_GNU_VERSION)\include \
-	-I$(NRF52_GCC_ROOT)\lib\gcc\arm-none-eabi\$(NRF52_GNU_VERSION)\include-fixed
-
-SDK_INCLUDES = \
-	-I$(NRF52_SDK_ROOT)\components \
-	-I$(NRF52_SDK_ROOT)\components\ble\common \
-	-I$(NRF52_SDK_ROOT)\components\ble\ble_advertising \
-	-I$(NRF52_SDK_ROOT)\components\ble\ble_radio_notification \
-	-I$(NRF52_SDK_ROOT)\components\ble\nrf_ble_gatt \
-	-I$(NRF52_SDK_ROOT)\components\ble\nrf_ble_qwr \
-	-I$(NRF52_SDK_ROOT)\components\ble\nrf_ble_scan \
-	-I$(NRF52_SDK_ROOT)\components\ble\peer_manager \
-	-I$(NRF52_SDK_ROOT)\components\boards \
-	-I$(NRF52_SDK_ROOT)\components\libraries\atomic \
-	-I$(NRF52_SDK_ROOT)\components\libraries\atomic_fifo \
-	-I$(NRF52_SDK_ROOT)\components\libraries\atomic_flags \
-	-I$(NRF52_SDK_ROOT)\components\libraries\balloc \
-	-I$(NRF52_SDK_ROOT)\components\libraries\button \
-	-I$(NRF52_SDK_ROOT)\components\libraries\bsp \
-	-I$(NRF52_SDK_ROOT)\components\libraries\delay \
-	-I$(NRF52_SDK_ROOT)\components\libraries\experimental_section_vars \
-	-I$(NRF52_SDK_ROOT)\components\libraries\fds \
-	-I$(NRF52_SDK_ROOT)\components\libraries\fstorage \
-	-I$(NRF52_SDK_ROOT)\components\libraries\hardfault \
-	-I$(NRF52_SDK_ROOT)\components\libraries\hardfault\nrf52 \
-	-I$(NRF52_SDK_ROOT)\components\libraries\hardfault\nrf52\handler \
-	-I$(NRF52_SDK_ROOT)\components\libraries\log \
-	-I$(NRF52_SDK_ROOT)\components\libraries\log\src \
-	-I$(NRF52_SDK_ROOT)\components\libraries\memobj \
-	-I$(NRF52_SDK_ROOT)\components\libraries\mutex \
-	-I$(NRF52_SDK_ROOT)\components\libraries\queue \
-	-I$(NRF52_SDK_ROOT)\components\libraries\ringbuf \
-	-I$(NRF52_SDK_ROOT)\components\libraries\scheduler \
-	-I$(NRF52_SDK_ROOT)\components\libraries\serial \
-	-I$(NRF52_SDK_ROOT)\components\libraries\stack_info \
-	-I$(NRF52_SDK_ROOT)\components\libraries\strerror \
-	-I$(NRF52_SDK_ROOT)\components\libraries\twi_sensor \
-	-I$(NRF52_SDK_ROOT)\components\libraries\twi_mngr \
-	-I$(NRF52_SDK_ROOT)\components\libraries\timer \
-	-I$(NRF52_SDK_ROOT)\components\libraries\util \
-	-I$(NRF52_SDK_ROOT)\components\libraries\usbd \
-	-I$(NRF52_SDK_ROOT)\components\libraries\usbd\class\cdc \
-	-I$(NRF52_SDK_ROOT)\components\libraries\usbd\class\cdc\acm \
-	-I$(NRF52_SDK_ROOT)\components\softdevice\common \
-	-I$(NRF52_SDK_ROOT)\components\softdevice\$(SOFT_DEVICE)\headers \
-	-I$(NRF52_SDK_ROOT)\components\softdevice\$(SOFT_DEVICE)\headers\nrf52 \
-	-I$(NRF52_SDK_ROOT)\components\toolchain\cmsis\include \
-	-I$(NRF52_SDK_ROOT)\external\fprintf \
-	-I$(NRF52_SDK_ROOT)\external\utf_converter \
-	-I$(NRF52_SDK_ROOT)\integration\nrfx\legacy \
-	-I$(NRF52_SDK_ROOT)\integration\nrfx \
-	-I$(NRF52_SDK_ROOT)\modules\nrfx \
-	-I$(NRF52_SDK_ROOT)\modules\nrfx\drivers\include \
-	-I$(NRF52_SDK_ROOT)\modules\nrfx\drivers\src \
-	-I$(NRF52_SDK_ROOT)\modules\nrfx\drivers\src\prs \
-	-I$(NRF52_SDK_ROOT)\modules\nrfx\hal \
-	-I$(NRF52_SDK_ROOT)\modules\nrfx\mdk \
-	-I$(NRF52_SDK_ROOT)\modules\nrfx\soc
+NRF_SDK_INCLUDES=-iprefix $(NRF52_SDK_ROOT)\ \
+	-iwithprefix components\libraries\crypto \
+	-iwithprefix components\libraries\crypto\backend\cc310 \
+	-iwithprefix components\libraries\crypto\backend\cc310_bl \
+	-iwithprefix components\libraries\crypto\backend\cifra \
+	-iwithprefix components\libraries\crypto\backend\nrf_hw \
+	-iwithprefix components\libraries\crypto\backend\mbedtls \
+	-iwithprefix components\libraries\crypto\backend\micro_ecc \
+	-iwithprefix components\libraries\crypto\backend\nrf_sw \
+	-iwithprefix components\libraries\crypto\backend\oberon \
+	-iwithprefix components\libraries\crypto\backend\optiga \
+	-iwithprefix external\nrf_cc310\include \
+	-iwithprefix external\nrf_cc310_bl\include \
+	-iwithprefix external\freertos\portable\GCC\nrf52 \
+	-iwithprefix external\freertos\portable\CMSIS\nrf52 \
+	-iwithprefix external\freertos\source \
+	-iwithprefix external\freertos\source\include \
+	-iwithprefix external\freertos\source\portable\MemMang \
+	-iwithprefix components \
+	-iwithprefix components\ble\common \
+	-iwithprefix components\ble\ble_advertising \
+	-iwithprefix components\ble\ble_radio_notification \
+	-iwithprefix components\ble\nrf_ble_gatt \
+	-iwithprefix components\ble\nrf_ble_qwr \
+	-iwithprefix components\ble\nrf_ble_scan \
+	-iwithprefix components\ble\peer_manager \
+	-iwithprefix components\boards \
+	-iwithprefix components\libraries\atomic \
+	-iwithprefix components\libraries\atomic_fifo \
+	-iwithprefix components\libraries\atomic_flags \
+	-iwithprefix components\libraries\balloc \
+	-iwithprefix components\libraries\button \
+	-iwithprefix components\libraries\bsp \
+	-iwithprefix components\libraries\delay \
+	-iwithprefix components\libraries\experimental_section_vars \
+	-iwithprefix components\libraries\fds \
+	-iwithprefix components\libraries\fstorage \
+	-iwithprefix components\libraries\hardfault \
+	-iwithprefix components\libraries\hardfault\nrf52 \
+	-iwithprefix components\libraries\hardfault\nrf52\handler \
+	-iwithprefix components\libraries\log \
+	-iwithprefix components\libraries\log\src \
+	-iwithprefix components\libraries\memobj \
+	-iwithprefix components\libraries\mutex \
+	-iwithprefix components\libraries\queue \
+	-iwithprefix components\libraries\ringbuf \
+	-iwithprefix components\libraries\scheduler \
+	-iwithprefix components\libraries\serial \
+	-iwithprefix components\libraries\stack_info \
+	-iwithprefix components\libraries\strerror \
+	-iwithprefix components\libraries\twi_sensor \
+	-iwithprefix components\libraries\twi_mngr \
+	-iwithprefix components\libraries\timer \
+	-iwithprefix components\libraries\util \
+	-iwithprefix components\libraries\usbd \
+	-iwithprefix components\libraries\usbd\class\cdc \
+	-iwithprefix components\libraries\usbd\class\cdc\acm \
+	-iwithprefix components\softdevice\common \
+	-iwithprefix components\softdevice\$(SOFT_DEVICE)\headers \
+	-iwithprefix components\softdevice\$(SOFT_DEVICE)\headers\nrf52 \
+	-iwithprefix components\toolchain\cmsis\include \
+	-iwithprefix external\fprintf \
+	-iwithprefix external\utf_converter \
+	-iwithprefix integration\nrfx\legacy \
+	-iwithprefix integration\nrfx \
+	-iwithprefix modules\nrfx \
+	-iwithprefix modules\nrfx\drivers\include \
+	-iwithprefix modules\nrfx\drivers\src \
+	-iwithprefix modules\nrfx\drivers\src\prs \
+	-iwithprefix modules\nrfx\hal \
+	-iwithprefix modules\nrfx\mdk \
+	-iwithprefix modules\nrfx\soc
 
 SDK_GLUE_INCLUDES = \
 	-I$(BUILD_DIR)\devices\nrf52\base \
@@ -589,7 +586,7 @@ LDFLAGS = \
 	-Xlinker -no-enum-size-warning \
 	-Xlinker -Map=$(BIN_DIR)\xs_lib.map
 
-C_INCLUDES = $(C_INCLUDES) $(DIRECTORIES) $(GCC_INCLUDES) $(CRYPTO_INCLUDES) $(SDK_INCLUDES) $(FREE_RTOS_INCLUDES) $(SDK_GLUE_INCLUDES) $(XS_INCLUDES) -I$(LIB_DIR) -I$(TMP_DIR) -I$(PLATFORM_DIR)
+C_INCLUDES = $(GCC_INCLUDES) $(C_INCLUDES) $(DIRECTORIES) $(SDK_GLUE_INCLUDES) $(XS_INCLUDES) -I$(LIB_DIR) -I$(TMP_DIR) -I$(PLATFORM_DIR) $(NRF_SDK_INCLUDES)
 
 LINKER_SCRIPT = $(PLATFORM_DIR)\config\xsproj.ld
 
