@@ -49,7 +49,7 @@
 		},
 		"spi": {
 			"interface": "3",
-			"hz": "8000000",
+			"hz": "32000000",
 			"miso_pin": -1,
 			"mosi_pin": 21,
 			"sck_pin": 23
@@ -60,7 +60,7 @@
 			"backlight_on": 1,
 			"width": 240,
 			"height": 240,
-			"hz": "8000000",
+			"hz": "32000000",
 			"cs_pin": 22,
 			"dc_pin": 19,
 			"rst_pin": "NRF_GPIO_PIN_MAP(1,7)",

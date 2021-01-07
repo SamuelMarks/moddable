@@ -200,6 +200,41 @@ ftdiTrace("16M spi");
 			xsEndHost(config->the);
 		}
 
+// set IO to high drive
+		nrf_gpio_cfg(
+			MODDEF_SPI_MOSI_PIN,
+			NRF_GPIO_PIN_DIR_OUTPUT,
+			NRF_GPIO_PIN_INPUT_DISCONNECT,
+			NRF_GPIO_PIN_NOPULL,
+			NRF_GPIO_PIN_H0H1,
+			NRF_GPIO_PIN_NOSENSE);
+
+		nrf_gpio_cfg(
+			MODDEF_SPI_SCK_PIN,
+			NRF_GPIO_PIN_DIR_OUTPUT,
+			NRF_GPIO_PIN_INPUT_DISCONNECT,
+			NRF_GPIO_PIN_NOPULL,
+			NRF_GPIO_PIN_H0H1,
+			NRF_GPIO_PIN_NOSENSE);
+
+		nrf_gpio_cfg(
+			MODDEF_ILI9341_CS_PIN,
+			NRF_GPIO_PIN_DIR_OUTPUT,
+			NRF_GPIO_PIN_INPUT_DISCONNECT,
+			NRF_GPIO_PIN_NOPULL,
+			NRF_GPIO_PIN_H0H1,
+			NRF_GPIO_PIN_NOSENSE);
+
+		nrf_gpio_cfg(
+			MODDEF_ILI9341_DC_PIN,
+			NRF_GPIO_PIN_DIR_OUTPUT,
+			NRF_GPIO_PIN_INPUT_DISCONNECT,
+			NRF_GPIO_PIN_NOPULL,
+			NRF_GPIO_PIN_H0H1,
+			NRF_GPIO_PIN_NOSENSE);
+
+
+
 		// trans and rcv organized as 2xTX buffer and 1xRX buffer
 		gSPITxBuffer = (uint32_t *)c_malloc(MODDEF_SPI_BUFFERSIZE * 3);
 		gSPIRxBuffer = (uint32_t *)((MODDEF_SPI_BUFFERSIZE * 2) + (uintptr_t)gSPITxBuffer);
