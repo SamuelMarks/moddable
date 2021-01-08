@@ -149,17 +149,48 @@ GCC_INCLUDES=-iprefix $(NRF52_GCC_ROOT)\ \
 	-iwithprefix lib\gcc\arm-none-eabi\$(NRF52_GNU_VERSION)\include-fixed
 
 
-NRF_SDK_INCLUDES=-iprefix $(NRF52_SDK_ROOT)\ \
-	-iwithprefix components\libraries\crypto \
-	-iwithprefix components\libraries\crypto\backend\cc310 \
-	-iwithprefix components\libraries\crypto\backend\cc310_bl \
-	-iwithprefix components\libraries\crypto\backend\cifra \
-	-iwithprefix components\libraries\crypto\backend\nrf_hw \
-	-iwithprefix components\libraries\crypto\backend\mbedtls \
-	-iwithprefix components\libraries\crypto\backend\micro_ecc \
-	-iwithprefix components\libraries\crypto\backend\nrf_sw \
-	-iwithprefix components\libraries\crypto\backend\oberon \
-	-iwithprefix components\libraries\crypto\backend\optiga \
+NRF_SDK_INCLUDES=-iprefix $(NRF52_SDK_ROOT)\components\libraries\ \
+	-iwithprefix crypto \
+	-iwithprefix crypto\backend\cc310 \
+	-iwithprefix crypto\backend\cc310_bl \
+	-iwithprefix crypto\backend\cifra \
+	-iwithprefix crypto\backend\nrf_hw \
+	-iwithprefix crypto\backend\mbedtls \
+	-iwithprefix crypto\backend\micro_ecc \
+	-iwithprefix crypto\backend\nrf_sw \
+	-iwithprefix crypto\backend\oberon \
+	-iwithprefix crypto\backend\optiga \
+	-iwithprefix atomic \
+	-iwithprefix atomic_fifo \
+	-iwithprefix atomic_flags \
+	-iwithprefix balloc \
+	-iwithprefix button \
+	-iwithprefix bsp \
+	-iwithprefix delay \
+	-iwithprefix experimental_section_vars \
+	-iwithprefix fds \
+	-iwithprefix fstorage \
+	-iwithprefix hardfault \
+	-iwithprefix hardfault\nrf52 \
+	-iwithprefix hardfault\nrf52\handler \
+	-iwithprefix log \
+	-iwithprefix log\src \
+	-iwithprefix memobj \
+	-iwithprefix mutex \
+	-iwithprefix queue \
+	-iwithprefix ringbuf \
+	-iwithprefix scheduler \
+	-iwithprefix serial \
+	-iwithprefix stack_info \
+	-iwithprefix strerror \
+	-iwithprefix twi_sensor \
+	-iwithprefix twi_mngr \
+	-iwithprefix timer \
+	-iwithprefix util \
+	-iwithprefix usbd \
+	-iwithprefix usbd\class\cdc \
+	-iwithprefix usbd\class\cdc\acm \
+	-iprefix $(NRF52_SDK_ROOT)\ \
 	-iwithprefix external\nrf_cc310\include \
 	-iwithprefix external\nrf_cc310_bl\include \
 	-iwithprefix external\freertos\portable\GCC\nrf52 \
@@ -176,36 +207,6 @@ NRF_SDK_INCLUDES=-iprefix $(NRF52_SDK_ROOT)\ \
 	-iwithprefix components\ble\nrf_ble_scan \
 	-iwithprefix components\ble\peer_manager \
 	-iwithprefix components\boards \
-	-iwithprefix components\libraries\atomic \
-	-iwithprefix components\libraries\atomic_fifo \
-	-iwithprefix components\libraries\atomic_flags \
-	-iwithprefix components\libraries\balloc \
-	-iwithprefix components\libraries\button \
-	-iwithprefix components\libraries\bsp \
-	-iwithprefix components\libraries\delay \
-	-iwithprefix components\libraries\experimental_section_vars \
-	-iwithprefix components\libraries\fds \
-	-iwithprefix components\libraries\fstorage \
-	-iwithprefix components\libraries\hardfault \
-	-iwithprefix components\libraries\hardfault\nrf52 \
-	-iwithprefix components\libraries\hardfault\nrf52\handler \
-	-iwithprefix components\libraries\log \
-	-iwithprefix components\libraries\log\src \
-	-iwithprefix components\libraries\memobj \
-	-iwithprefix components\libraries\mutex \
-	-iwithprefix components\libraries\queue \
-	-iwithprefix components\libraries\ringbuf \
-	-iwithprefix components\libraries\scheduler \
-	-iwithprefix components\libraries\serial \
-	-iwithprefix components\libraries\stack_info \
-	-iwithprefix components\libraries\strerror \
-	-iwithprefix components\libraries\twi_sensor \
-	-iwithprefix components\libraries\twi_mngr \
-	-iwithprefix components\libraries\timer \
-	-iwithprefix components\libraries\util \
-	-iwithprefix components\libraries\usbd \
-	-iwithprefix components\libraries\usbd\class\cdc \
-	-iwithprefix components\libraries\usbd\class\cdc\acm \
 	-iwithprefix components\softdevice\common \
 	-iwithprefix components\softdevice\$(SOFT_DEVICE)\headers \
 	-iwithprefix components\softdevice\$(SOFT_DEVICE)\headers\nrf52 \
@@ -223,21 +224,21 @@ NRF_SDK_INCLUDES=-iprefix $(NRF52_SDK_ROOT)\ \
 	-iwithprefix modules\nrfx\soc
 
 SDK_GLUE_INCLUDES = \
-	-I$(BUILD_DIR)\devices\nrf52\base \
-	-I$(BUILD_DIR)\devices\nrf52\config \
 	-I$(PLATFORM_DIR) \
 	-I$(PLATFORM_DIR)\config
 
 XS_INCLUDES = \
-	-I$(XS_DIR)\includes \
-	-I$(XS_DIR)\sources \
-	-I$(XS_DIR)\platforms\nrf52 \
-	-I$(XS_DIR)\..\modules\files\preference \
-	-I$(XS_DIR)\..\modules\base\instrumentation \
-	-I$(XS_DIR)\..\modules\base\timer \
-	-I$(BUILD_DIR)\devices\nrf52 \
-	-I$(BUILD_DIR)\devices\nrf52\base \
-	-I$(BUILD_DIR)\devices\nrf52\xsProj
+	-iprefix $(XS_DIR)\ \
+	-iwithprefix includes \
+	-iwithprefix sources \
+	-iwithprefix platforms\nrf52 \
+	-iwithprefix ..\modules\files\preference \
+	-iwithprefix ..\modules\base\instrumentation \
+	-iwithprefix ..\modules\base\timer \
+	-iprefix $(BUILD_DIR)\devices\nrf52\ \
+	-iwithprefix base \
+	-iwithprefix config \
+	-iwithprefix xsProj
 
 BOARD_SUPPORT_OBJ = \
 	$(LIB_DIR)\boards.o \
@@ -453,8 +454,7 @@ OBJECTS = \
 	$(NRF_LIBRARIES_OBJ) \
 	$(NRF_SOFTDEVICE_OBJ) \
 	$(NRF_USBD_OBJ) \
-	$(STARTUP_OBJ) \
-	$(WEBUSB_OBJ)
+	$(STARTUP_OBJ)
 
 FINAL_LINK_OBJ = \
 	$(LIB_DIR)\buildinfo.o \
@@ -607,11 +607,11 @@ all: precursor $(BIN_DIR)\xs_nrf52.uf2
 clean:
 	echo # Clean project
 	echo $(BIN_DIR)
-	del /s/q/f $(BIN_DIR)\*.* > NUL
-	rmdir /s/q $(BIN_DIR)
+	if exist $(BIN_DIR) del /s/q/f $(BIN_DIR)\*.* > NUL
+	if exist $(BIN_DIR) rmdir /s/q $(BIN_DIR)
 	echo $(TMP_DIR)
-	del /s/q/f $(TMP_DIR)\*.* > NUL
-	rmdir /s/q $(TMP_DIR)
+	if exist $(TMP_DIR) del /s/q/f $(TMP_DIR)\*.* > NUL
+	if exist $(TMP_DIR) rmdir /s/q $(TMP_DIR)
 	echo $(LIB_DIR)
 	if exist $(LIB_DIR) del /s/q/f $(LIB_DIR)\*.* > NUL
 	if exist $(LIB_DIR) rmdir /s/q $(LIB_DIR)
@@ -660,7 +660,7 @@ $(TMP_DIR)\xs_nrf52.out: $(FINAL_LINK_OBJ)
 	@echo link to .out file
 	$(LD) $(LDFLAGS) $(FINAL_LINK_OBJ) $(LIB_FILES) -o $@
 
-$(LIB_DIR)\buildinfo.o: $(SDK_GLUE_OBJECTS) $(XS_OBJ) $(TMP_DIR)\mc.xs.o $(TMP_DIR)\mc.resources.o $(OBJECTS)
+$(LIB_DIR)\buildinfo.o: $(SDK_GLUE_OBJ) $(XS_OBJ) $(TMP_DIR)\mc.xs.o $(TMP_DIR)\mc.resources.o $(OBJECTS)
 	@echo # buildinfo
 	echo #include "buildinfo.h" > $(LIB_DIR)\buildinfo.c
 	echo _tBuildInfo _BuildInfo = {"$(BUILD_DATE)","$(BUILD_TIME)","$(SRC_GIT_VERSION)","$(ESP_GIT_VERSION)"}; >> $(LIB_DIR)\buildinfo.c
