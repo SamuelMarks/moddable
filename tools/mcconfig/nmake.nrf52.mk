@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016-2020  Moddable Tech, Inc.
+# Copyright (c) 2016-2021  Moddable Tech, Inc.
 #
 #   This file is part of the Moddable SDK Tools.
 #
@@ -616,7 +616,7 @@ clean:
 	if exist $(LIB_DIR) del /s/q/f $(LIB_DIR)\*.* > NUL
 	if exist $(LIB_DIR) rmdir /s/q $(LIB_DIR)
 
-NRFJPROG_ARGS = -f nrf52 --qspiini $(PLATFORM_DIR)\config\QspiDefault.ini
+NRFJPROG_ARGS = -f nrf52 --qspiini $(QSPI_INI_PATH)
 flash: precursor $(BIN_DIR)\xs_nrf52.hex
 	@echo Flashing: $(BIN_DIR)\xs_nrf52.hex
 	$(NRFJPROG) $(NRFJPROG_ARGS) --program $(BIN_DIR)\xs_nrf52.hex --qspisectorerase --sectorerase

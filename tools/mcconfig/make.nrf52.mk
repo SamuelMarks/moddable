@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2016-2020  Moddable Tech, Inc.
+# Copyright (c) 2016-2021  Moddable Tech, Inc.
 #
 #   This file is part of the Moddable SDK Tools.
 #
@@ -24,6 +24,7 @@ XS_GIT_VERSION ?= $(shell git -C $(MODDABLE) describe --tags --always --dirty 2>
 USE_USB ?= 0
 
 NRF_ROOT ?= $(HOME)/nrf5
+NRFJPROG_ARGS ?= -f nrf52 --qspiini $(QSPI_INI_PATH)
 
 UPLOAD_SPEED ?= 921600
 DEBUGGER_SPEED ?= 921600
@@ -706,7 +707,6 @@ allclean:
 	@echo "# rm $(MODDABLE)/build/tmp/nrf52"
 	-rm -rf $(MODDABLE)/build/tmp/nrf52
 
-NRFJPROG_ARGS = -f nrf52 --qspiini $(PLATFORM_DIR)/config/QspiDefault.ini
 flash: precursor $(BIN_DIR)/xs_nrf52.hex
 	@echo Flashing: $(BIN_DIR)/xs_nrf52.hex
 	$(NRFJPROG) $(NRFJPROG_ARGS) --program $(BIN_DIR)/xs_nrf52.hex --qspisectorerase --sectorerase
