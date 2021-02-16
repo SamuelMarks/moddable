@@ -1,12 +1,12 @@
 # BLE
 Copyright 2017-20 Moddable Tech, Inc.
 
-Revised: December 18, 2020
+Revised: January 15, 2021
 
 **Warning**: These notes are preliminary. Omissions and errors are likely. If you encounter problems, please ask for assistance.
 
 ## About This Document
-This document describes the Moddable SDK Bluetooth Low Energy (BLE) modules. Both client (master) and server (slave) roles are supported on Espressif ESP32, Silicon Labs Blue Gecko, and Qualcomm QCA4020 devices.
+This document describes the Moddable SDK Bluetooth Low Energy (BLE) modules. Both client (master) and server (slave) roles are supported on Espressif ESP32, Silicon Labs Blue Gecko, Qualcomm QCA4020, and Nordic nRF52 devices.
 
 > **Note:** A BLE server/slave is also commonly referred to as a BLE peripheral. The terms *server*, *slave* and *peripheral* in this document are used interchangeably.
 
@@ -1141,7 +1141,10 @@ The `params` object contains the following properties:
 | `discoverable` | `object` | Optional property to specify discoverable mode. Set to `true` to use the general discovery procedure; `false` to specify non-discoverable. Defaults to `true`.
 | `fast` | `boolean` | Optional property to specify the GAP advertisement interval. Set to `true` to specify TGAP(adv\_fast\_interval1); `false` to specify TGAP(adv\_slow\_interval). Defaults to `true`.
 | `filterPolicy` | `number` | Optional property to apply a filter policy. Defaults to `GAP.AdvFilterPolicy.NONE` (no filtering). Refer to the [BLE whitelisting](#blewhitelisting) section for details.
+| `notify` | `boolean` | Optional property to notify application after each advertising data packet sent. Defaults to `false`.
 | `scanResponseData` | `object` | Optional object containing scan response data properties.
+
+> Note: The `notify` property is only implemented for nRF52 devices.
 
 The `filterPolicy` property can be one of the following:
 
@@ -1210,6 +1213,20 @@ this.startAdvertising({
 });
 ```
 
+To receive a notification callback after each advertising data packet sent:
+
+```javascript
+onReady() {
+	this.startAdvertising({
+		notify: true,
+		advertisingData: {flags: GAP.ADFlag.NO_BR_EDR, completeName: "Advertiser"}
+	});
+}
+onAdvertisementSent() {
+	trace("advertisement sent\n");
+}
+```
+
 ***
 
 #### `stopAdvertising()`
@@ -1249,6 +1266,14 @@ startNotifications(characteristic) {
 }
 ```
 
+***
+
+#### `onAdvertisementSent()`
+
+The `onAdvertisementSent` callback function is called after each advertising data packet sent, when a server enables advertisement notifications from the `startAdvertising()` function.
+
+> Note: The `onAdvertisementSent` callback is only implemented for nRF52 devices.
+ 
 ***
 
 #### `onCharacteristicNotifyEnabled(characteristic)`
@@ -1739,37 +1764,15 @@ Use the `clear` function to remove all peer devices from the whitelist.
 
 <a id="esp32platform"></a>
 ## BLE Apps on ESP32 Platform
-The `mcconfig` command line tool **automatically** configures the required ESP-IDF BLE options required by the host app.
-The [sdkconfig.defaults](https://github.com/Moddable-OpenSource/moddable/blob/public/build/devices/esp32/xsProj/sdkconfig.defaults) configuration file in the Moddable SDK presets the following core BLE options:
+The `mcconfig` command line tool **automatically** configures the ESP-IDF [sdkconfig.defaults](https://github.com/Moddable-OpenSource/moddable/blob/public/build/devices/esp32/xsProj/sdkconfig.defaults) BLE options required by the host app. The ESP-IDF supports both the Apache [NimBLE](http://mynewt.apache.org/latest/network/index.html#) Bluetooth LE [5.1-certified](https://launchstudio.bluetooth.com/ListingDetails/97856) open-source host and the dual-mode [Bluedroid](https://www.espressif.com/sites/default/files/documentation/esp32_bluetooth_architecture_en.pdf) stack. NimBLE provides [several benefits](https://blog.moddable.com/blog/moddable-sdk-improvements-for-esp32-projects/) over Bluedroid, including smaller Flash/RAM footprint, fewer buffer copies, and faster builds. NimBLE is enabled by default by the Moddable SDK in ESP32 builds.
 
-	CONFIG_BTDM_CONTROLLER_PINNED_TO_CORE=0
-	CONFIG_BTDM_CONTROLLER_HCI_MODE_VHCI=y
-	CONFIG_BLUEDROID_ENABLED=y
-	CONFIG_BLUEDROID_PINNED_TO_CORE=0
-	CONFIG_BTC_TASK_STACK_SIZE=3072
-	CONFIG_BLE_SMP_ENABLE=y
-	CONFIG_BT_ACL_CONNECTIONS=1
-	CONFIG_SMP_ENABLE=y
-	CONFIG_BT_RESERVE_DRAM=0x10000
-	
-When building a BLE client or server app, the `mcconfig` tool enables the ESP-IDF BLE components by setting the corresponding option:
+>**Note:** BLE options can be further customized by the host app, if necessary, by providing a pathname to a directory containing custom sdkconfig defaults entries in the application manifest. Refer to the [manifest](https://github.com/Moddable-OpenSource/moddable/blob/public/documentation/tools/manifest.md) documentation for details. For example, the `CONFIG_BT_NIMBLE_MAX_CONNECTIONS` value can be increased to support more than one BLE client connection. This value should match the `max_connections` value in the application manifest.
 
-	CONFIG_BT_ENABLED=y
-
-When building a BLE client app, the `CONFIG_GATTC_ENABLE` option is also set:
-
-	CONFIG_GATTC_ENABLE=y
-
-When building a BLE server app, the `CONFIG_GATTS_ENABLE` option is also set:
-
-	CONFIG_GATTS_ENABLE=y
-
->**Note:** BLE options can be further customized, if necessary, by editing the `sdkconfig.defaults` file before building the host app. For example, the `CONFIG_BT_ACL_CONNECTIONS` value can be increased to support more than one BLE client connection. This value should match the `max_connections` value in the application manifest.
-
-Once any sdkconfig.defaults file changes have been made, build the [scanner](../../../examples/network/ble/scanner) BLE app for the ESP32 platform:
+To build BLE apps using the legacy Bluedroid implementation, set the `ESP32_BLUEDROID` build environment variable to `1`. This environment variable can be set on the `mcconfig` command line for convenience:
 
 	cd $MODDABLE/examples/network/ble/scanner
-	mcconfig -d -m -p esp32
+	ESP32_BLUEDROID=1 mcconfig -d -m -p esp32
+
 
 <a id="geckoplatform"></a>
 ## BLE Apps on Blue Gecko Platform
@@ -1832,6 +1835,7 @@ The Moddable SDK includes many BLE client and server example apps to build from.
 | Name | Description |
 | :---: | :--- |
 | [advertiser](../../../examples/network/ble/advertiser) | Broadcasts advertisements until a BLE client connects.
+| [advertiser-notify](../../../examples/network/ble/advertiser-whitelist) | Demonstrates how to configure advertiser to receive notification callbacks for each advertising data packet sent.
 | [advertiser-whitelist](../../../examples/network/ble/advertiser-whitelist) | Broadcasts advertisements until the whitelisted BLE client connects.
 | [health-thermometer-server](../../../examples/network/ble/health-thermometer-server) | Implements the Bluetooth [Health Thermometer Service](https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Services/org.bluetooth.service.health_thermometer.xml).
 | [health-thermometer-server-gui](../../../examples/network/ble/health-thermometer-server-gui) | [Piu](../../../documentation/piu/piu.md) app for ESP32 that implements the Bluetooth [Health Thermometer Service](https://www.bluetooth.com/wp-content/uploads/Sitecore-Media-Library/Gatt/Xml/Services/org.bluetooth.service.health_thermometer.xml).

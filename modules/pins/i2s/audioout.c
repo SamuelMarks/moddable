@@ -1076,10 +1076,10 @@ void audioOutLoop(void *pvParameter)
 		.bits_per_sample = MODDEF_AUDIOOUT_I2S_BITSPERSAMPLE,
 #if MODDEF_AUDIOOUT_I2S_BITSPERSAMPLE == 16
 		.channel_format = (1 == out->numChannels) ? I2S_CHANNEL_FMT_ONLY_LEFT : I2S_CHANNEL_FMT_RIGHT_LEFT,	// 2-channels
-		.communication_format = I2S_COMM_FORMAT_I2S | I2S_COMM_FORMAT_I2S_MSB,
+		.communication_format = I2S_COMM_FORMAT_STAND_I2S,
 #else
 		.channel_format = I2S_CHANNEL_FMT_ONLY_LEFT /* I2S_CHANNEL_FMT_RIGHT_LEFT */,	// 2-channels
-		.communication_format = I2S_COMM_FORMAT_I2S /* | I2S_COMM_FORMAT_I2S_MSB */,
+		.communication_format = I2S_COMM_FORMAT_STAND_I2S /* | I2S_COMM_FORMAT_I2S_MSB */,
 #endif
 		.dma_buf_count = 2,
 		.dma_buf_len = sizeof(out->buffer) / out->bytesPerFrame,		// dma_buf_len is in frames, not bytes
@@ -1098,7 +1098,7 @@ void audioOutLoop(void *pvParameter)
 		.sample_rate = out->sampleRate,
 		.bits_per_sample = I2S_BITS_PER_SAMPLE_16BIT,
 		.channel_format = I2S_CHANNEL_FMT_RIGHT_LEFT,
-		.communication_format = I2S_COMM_FORMAT_I2S_MSB,
+		.communication_format = I2S_COMM_FORMAT_STAND_I2S,
 		.intr_alloc_flags = 0,
 		.dma_buf_count = 2,
 		.dma_buf_len = sizeof(out->buffer) / 2,
@@ -1171,9 +1171,9 @@ void audioOutLoop(void *pvParameter)
 #if MODDEF_AUDIOOUT_I2S_DAC_CHANNEL == 3 //I2S_DAC_CHANNEL_BOTH_EN
 			*dst++ = (s << 16) | s;
 #elif MODDEF_AUDIOOUT_I2S_DAC_CHANNEL == 1 //I2S_DAC_CHANNEL_RIGHT_EN
-			*dst++ = s << 16;
-#elif MODDEF_AUDIOOUT_I2S_DAC_CHANNEL == 2 //I2S_DAC_CHANNEL_LEFT_EN
 			*dst++ = s;
+#elif MODDEF_AUDIOOUT_I2S_DAC_CHANNEL == 2 //I2S_DAC_CHANNEL_LEFT_EN
+			*dst++ = s << 16;
 #endif
 		}
 			

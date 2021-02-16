@@ -47,6 +47,8 @@
 
 */
 
+#define kWriteBufferSize (1024)		// 1024 is the default on macOS (it seems)
+
 typedef struct {
 	xsMachine			*the;
 	xsSlot				obj;
@@ -59,14 +61,20 @@ typedef struct {
 	CFRunLoopSourceRef	serialSource;
 
 	modTimer			writable;
+	modTimer			flush;
 	uint8_t				bufferFormat;
 	uint8_t				hasOnReadable;
 	uint8_t				hasOnWritable;
 	uint8_t				hasOnError;
+
+	uint8_t				writeBuffer[kWriteBufferSize];
+	uint8_t				*toWrite;
+	uint32_t			bytesToWrite;
 } xsSerialRecord, *xsSerial;
 
 static void fxSerialReadable(CFSocketRef socketRef, CFSocketCallBackType cbType, CFDataRef addr, const void* data, void* context);
 static void fxSerialWritable(modTimer timer, void *refcon, int refconSize);
+static void fxSerialFlush(modTimer timer, void *refcon, int refconSize);
 static void fxSerialSetFormat(xsMachine *the, xsSerial s, char *format);
 
 void xs_serial_destructor(void *data)
@@ -76,6 +84,9 @@ void xs_serial_destructor(void *data)
 
 	if (s->writable)
 		modTimerRemove(s->writable);
+
+	if (s->flush)
+		modTimerRemove(s->flush);
 
 	if (s->serialSocket)
 		CFSocketInvalidate(s->serialSocket);
@@ -206,9 +217,14 @@ void xs_serial_read(xsMachine *the)
 	else
 		count = available;
 
-	if (s->bufferFormat) {
+	if (1 == s->bufferFormat) {
 		xsResult = xsArrayBuffer(NULL, count);
 		read(s->fd, xsToArrayBuffer(xsResult), count);
+	}
+	if (2 == s->bufferFormat) {
+		uint8_t byte;
+		read(s->fd, &byte, 1);
+		xsResult = xsInteger(byte);
 	}
 	else {
 		xsResult = xsStringBuffer(NULL, count);
@@ -221,10 +237,16 @@ void xs_serial_write(xsMachine *the)
 	xsSerial s = xsGetHostData(xsThis);
 	int count;
 	char *data;
+	char byte;
 
-	if (s->bufferFormat) {
+	if (1 == s->bufferFormat) {
 		count = xsGetArrayBufferLength(xsArg(0));
 		data = xsToArrayBuffer(xsArg(0));
+	}
+	else if (2 == s->bufferFormat) {
+		count = 1;
+		byte = xsToInteger(xsArg(0));
+		data = &byte;
 	}
 	else {
 		data = xsToString(xsArg(0));
@@ -233,10 +255,22 @@ void xs_serial_write(xsMachine *the)
 	if (!count)
 		return;
 
+	if ((count > kWriteBufferSize) || s->flush)
+		xsUnknownError("would overflow");
+
 	while (count) {
 		int result = write(s->fd, data, count);
-		if (result < 0)
-			xsUnknownError("write failed");
+		if (result < 0) {
+			if (EAGAIN != errno)
+				xsUnknownError("write failed");
+
+			c_memmove(s->writeBuffer, data, count);
+			s->toWrite = s->writeBuffer;
+			s->bytesToWrite = count;
+
+			s->flush = modTimerAdd(0, 0, fxSerialFlush, &s, sizeof(s));
+			return;
+		}
 		count -= result;
 		data += result;
 	}
@@ -272,7 +306,9 @@ void xs_serial_set(xsMachine *the)
 void xs_serial_format_get(xsMachine *the)
 {
 	xsSerial s = xsGetHostData(xsThis);
-	if (s->bufferFormat)
+	if (2 == s->bufferFormat)
+		xsResult = xsString("number");
+	else if (1 == s->bufferFormat)
 		xsResult = xsString("buffer");
 	else
 		xsResult = xsString("string;ascii");
@@ -327,14 +363,34 @@ void fxSerialWritable(modTimer timer, void *refcon, int refconSize)
 	s->writable = NULL;
 
 	xsBeginHost(s->the);
-		xsCallFunction1(s->onWritable, s->obj, xsInteger(1024));		// 1024 is the default on macOS?
+		xsCallFunction1(s->onWritable, s->obj, xsInteger(kWriteBufferSize));		// 1024 is the default on macOS?
 	xsEndHost();
+}
+
+void fxSerialFlush(modTimer timer, void *refcon, int refconSize)
+{
+	xsSerial s = *(xsSerial *)refcon;
+
+	s->flush = NULL;
+
+	int result = write(s->fd, s->toWrite, s->bytesToWrite);
+	if (result > 0) {
+		s->toWrite += result;
+		s->bytesToWrite -= result;
+	}
+
+	if (s->bytesToWrite)
+		s->flush = modTimerAdd(0, 0, fxSerialFlush, &s, sizeof(s));
+	else if (!s->writable && s->hasOnWritable)
+		s->writable = modTimerAdd(0, 0, fxSerialWritable, &s, sizeof(s));
 }
 
 void fxSerialSetFormat(xsMachine *the, xsSerial s, char *format)
 {
 	if (!strcmp(format, "buffer"))
 		s->bufferFormat = 1;
+	else if (!strcmp(format, "number"))
+		s->bufferFormat = 2;
 	else if (!strcmp(format, "string;ascii"))
 		s->bufferFormat = 0;
 	else
