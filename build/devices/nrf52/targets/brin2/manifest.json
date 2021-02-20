@@ -3,7 +3,7 @@
 		"USE_USB": "0",
 		"DEBUGGER_SPEED": "921600",
 		"FTDI_TRACE": "-DUSE_FTDI_TRACE=1",
-		"NRFJPROG_ARGS": "-f nrf52 --qspiinit $(PLATFORM_DIR)/targets/brin2/QspiDefault.ini"
+		"QSPI_INI_PATH": "$(MODDABLE)/build/devices/nrf52/targets/brin2/QspiDefault.ini"
 	},
 	"include": [
 		"$(MODULES)/drivers/ili9341/manifest.json",
