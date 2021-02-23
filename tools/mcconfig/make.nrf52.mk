@@ -331,7 +331,7 @@ SDK_GLUE_OBJ = \
 	$(TMP_DIR)/xsmain.c.o \
 	$(TMP_DIR)/systemclock.c.o \
 	$(TMP_DIR)/debugger.c.o \
-	$(TMP_DIR)/serial.c.o \
+	$(TMP_DIR)/nrf52_serial.c.o \
 	$(TMP_DIR)/main.c.o \
 	$(TMP_DIR)/debugger_usbd.c.o \
 	$(TMP_DIR)/ftdi_trace.c.o \
