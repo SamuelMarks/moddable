@@ -1,4 +1,7 @@
 {
+	"build": {
+		"USE_USB": "1"
+	},
 	"include": [
 		"$(MODULES)/drivers/ls013b4dn04/manifest.json",
 		"$(MODULES)/pins/digital/monitor/manifest.json",
@@ -45,7 +48,7 @@
 			"xrx_pin": "NRF_GPIO_PIN_MAP(0,31)",
 			"tx_pin": "3",
 			"rx_pin": "4",
-			"baudrate": "NRF_UART_BAUDRATE_115200"
+			"baudrate": "NRF_UARTE_BAUDRATE_921600"
 		},
 		"spi": {
 			"interface": "3",
