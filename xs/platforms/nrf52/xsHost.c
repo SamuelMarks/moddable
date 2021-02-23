@@ -1326,7 +1326,7 @@ uint8_t nrf52_softdevice_enabled(void)
 }
 
 //---------- alignment for memory
-#define ICACHE_RAM_ATTR
+//#define ICACHE_RAM_ATTR
 
 ICACHE_RAM_ATTR uint8_t espRead8(const void *addr)
 {

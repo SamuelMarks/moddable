@@ -169,15 +169,9 @@ void modSPIInit(modSPIConfiguration config)
 		}
 
 		if (config->hz > 16000000)
-{
-ftdiTrace("32M spi");
 			config->spi_config.frequency = NRF_SPIM_FREQ_32M;
-}
 		else if (config->hz > 8000000)
-{
-ftdiTrace("16M spi");
 			config->spi_config.frequency = NRF_SPIM_FREQ_16M;
-}
 		else if (config->hz > 4000000)
 			config->spi_config.frequency = NRF_SPIM_FREQ_8M;
 		else if (config->hz > 2000000)
@@ -200,7 +194,8 @@ ftdiTrace("16M spi");
 			xsEndHost(config->the);
 		}
 
-// set IO to high drive
+#ifdef MODDEF_SPI_HIGH_POWER
+		// set IO to high drive
 		nrf_gpio_cfg(
 			MODDEF_SPI_MOSI_PIN,
 			NRF_GPIO_PIN_DIR_OUTPUT,
@@ -216,35 +211,18 @@ ftdiTrace("16M spi");
 			NRF_GPIO_PIN_NOPULL,
 			NRF_GPIO_PIN_H0H1,
 			NRF_GPIO_PIN_NOSENSE);
-
-		nrf_gpio_cfg(
-			MODDEF_ILI9341_CS_PIN,
-			NRF_GPIO_PIN_DIR_OUTPUT,
-			NRF_GPIO_PIN_INPUT_DISCONNECT,
-			NRF_GPIO_PIN_NOPULL,
-			NRF_GPIO_PIN_H0H1,
-			NRF_GPIO_PIN_NOSENSE);
-
-		nrf_gpio_cfg(
-			MODDEF_ILI9341_DC_PIN,
-			NRF_GPIO_PIN_DIR_OUTPUT,
-			NRF_GPIO_PIN_INPUT_DISCONNECT,
-			NRF_GPIO_PIN_NOPULL,
-			NRF_GPIO_PIN_H0H1,
-			NRF_GPIO_PIN_NOSENSE);
-
-
+#endif
 
 		// trans and rcv organized as 2xTX buffer and 1xRX buffer
 		gSPITxBuffer = (uint32_t *)c_malloc(MODDEF_SPI_BUFFERSIZE * 3);
 		gSPIRxBuffer = (uint32_t *)((MODDEF_SPI_BUFFERSIZE * 2) + (uintptr_t)gSPITxBuffer);
 		config->transfer[0].p_tx_buffer = (uint8_t*)gSPITxBuffer;
 		config->transfer[0].tx_length = 0;
-		config->transfer[0].p_rx_buffer = gSPIRxBuffer;
+		config->transfer[0].p_rx_buffer = (uint8_t*)gSPIRxBuffer;
 		config->transfer[0].rx_length = 0;
 		config->transfer[1].p_tx_buffer = (uint8_t*)gSPITxBuffer + MODDEF_SPI_BUFFERSIZE;
 		config->transfer[1].tx_length = 0;
-		config->transfer[1].p_rx_buffer = gSPIRxBuffer;
+		config->transfer[1].p_rx_buffer = (uint8_t*)gSPIRxBuffer;
 		config->transfer[1].rx_length = 0;
 
 		gSPIInited = true;
@@ -553,10 +531,6 @@ void modSPITxRx(modSPIConfiguration config, uint8_t *data, uint16_t count)
 
 void modSPIFlush(void)
 {
-//	while (!nrf_spi_mngr_is_idle(&gSPI0))
- //      taskYIELD();
-//	if (gConfig)
-//		ftdiTraceAndInt2("modSPIFlush - # of # :", gConfig->transIdx, gConfig->numTransfers);
 	while (gSPIDataCount != -1)
         taskYIELD();
 }

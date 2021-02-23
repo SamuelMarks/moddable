@@ -1,6 +1,7 @@
 {
 	"build": {
 		"USE_USB": "0",
+		"USE_QSPI": "1",
 		"DEBUGGER_SPEED": "921600",
 		"FTDI_TRACE": "-DUSE_FTDI_TRACE=1",
 		"QSPI_INI_PATH": "$(MODDABLE)/build/devices/nrf52/targets/brin2/QspiDefault.ini"
@@ -79,14 +80,15 @@
 		"debugger": {
 			"tx_pin": "NRF_GPIO_PIN_MAP(0,4)",
 			"rx_pin": "NRF_GPIO_PIN_MAP(0,5)",
-			"baudrate": "NRF_UART_BAUDRATE_921600"
+			"baudrate": "NRF_UARTE_BAUDRATE_921600"
 		},
 		"spi": {
 			"interface": "3",
 			"hz": "32000000",
 			"miso_pin": -1,
 			"mosi_pin": "NRF_GPIO_PIN_MAP(0,15)",
-			"sck_pin": "NRF_GPIO_PIN_MAP(0,13)"
+			"sck_pin": "NRF_GPIO_PIN_MAP(0,13)",
+			"high_power": 1
 		},
 		"ili9341": {
 			"spi_port": 3,

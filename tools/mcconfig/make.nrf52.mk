@@ -22,6 +22,7 @@ HOST_OS := $(shell uname)
 XS_GIT_VERSION ?= $(shell git -C $(MODDABLE) describe --tags --always --dirty 2> /dev/null)
 
 USE_USB ?= 0
+FTDI_TRACE ?= -DUSE_FTDI_TRACE=0
 
 NRF_ROOT ?= $(HOME)/nrf5
 NRFJPROG_ARGS ?= -f nrf52 --qspiini $(QSPI_INI_PATH)
@@ -211,10 +212,12 @@ INC_DIRS += \
 	$(NRF52_SDK_ROOT)/components/libraries/bsp \
 	$(NRF52_SDK_ROOT)/components/libraries/delay \
 	$(NRF52_SDK_ROOT)/components/libraries/fds \
+	$(NRF52_SDK_ROOT)/components/libraries/fifo \
 	$(NRF52_SDK_ROOT)/components/libraries/fstorage \
 	$(NRF52_SDK_ROOT)/components/libraries/hardfault \
 	$(NRF52_SDK_ROOT)/components/libraries/hardfault/nrf52 \
 	$(NRF52_SDK_ROOT)/components/libraries/hardfault/nrf52/handler \
+	$(NRF52_SDK_ROOT)/components/libraries/libuarte \
 	$(NRF52_SDK_ROOT)/components/libraries/log \
 	$(NRF52_SDK_ROOT)/components/libraries/log/src \
 	$(NRF52_SDK_ROOT)/components/libraries/queue \
@@ -328,6 +331,7 @@ SDK_GLUE_OBJ = \
 	$(TMP_DIR)/xsmain.c.o \
 	$(TMP_DIR)/systemclock.c.o \
 	$(TMP_DIR)/debugger.c.o \
+	$(TMP_DIR)/serial.c.o \
 	$(TMP_DIR)/main.c.o \
 	$(TMP_DIR)/debugger_usbd.c.o \
 	$(TMP_DIR)/ftdi_trace.c.o \
@@ -432,21 +436,24 @@ NRF_DRIVERS = \
 	$(LIB_DIR)/nrf_drv_clock.c.o \
 	$(LIB_DIR)/nrf_drv_power.c.o \
 	$(LIB_DIR)/nrf_drv_twi.c.o \
-	$(LIB_DIR)/nrf_drv_uart.c.o \
 	$(LIB_DIR)/nrfx_atomic.c.o \
 	$(LIB_DIR)/nrfx_clock.c.o \
 	$(LIB_DIR)/nrfx_gpiote.c.o \
 	$(LIB_DIR)/nrfx_lpcomp.c.o \
 	$(LIB_DIR)/nrfx_power.c.o \
+	$(LIB_DIR)/nrfx_ppi.c.o \
 	$(LIB_DIR)/nrfx_prs.c.o \
 	$(LIB_DIR)/nrfx_qdec.c.o \
 	$(LIB_DIR)/nrfx_saadc.c.o \
 	$(LIB_DIR)/nrfx_spim.c.o \
 	$(LIB_DIR)/nrfx_systick.c.o \
+	$(LIB_DIR)/nrfx_timer.c.o \
 	$(LIB_DIR)/nrfx_twim.c.o \
-	$(LIB_DIR)/nrfx_uart.c.o \
-	$(LIB_DIR)/nrfx_uarte.c.o \
 	$(LIB_DIR)/nrfx_wdt.c.o
+
+#	$(LIB_DIR)/nrf_drv_uart.c.o \
+#	$(LIB_DIR)/nrfx_uart.c.o \
+#	$(LIB_DIR)/nrfx_uarte.c.o \
 
 NRF_LIBRARIES = \
 	$(LIB_DIR)/app_button.c.o \
@@ -461,10 +468,13 @@ NRF_LIBRARIES = \
 	$(LIB_DIR)/nrf_atflags.c.o \
 	$(LIB_DIR)/nrf_atomic.c.o \
 	$(LIB_DIR)/nrf_balloc.c.o \
+	$(LIB_DIR)/app_fifo.c.o \
 	$(LIB_DIR)/nrf_fprintf.c.o \
 	$(LIB_DIR)/nrf_fprintf_format.c.o \
 	$(LIB_DIR)/nrf_fstorage_sd.c.o \
 	$(LIB_DIR)/nrf_fstorage.c.o \
+	$(LIB_DIR)/nrf_libuarte_drv.c.o \
+	$(LIB_DIR)/nrf_libuarte_async.c.o \
 	$(LIB_DIR)/nrf_memobj.c.o \
 	$(LIB_DIR)/nrf_queue.c.o \
 	$(LIB_DIR)/nrf_ringbuf.c.o \
@@ -638,7 +648,11 @@ C_DEFINES := -fshort-enums $(C_DEFINES)
 
 C_FLAGS_NODATASECTION = $(C_FLAGS)
 
-LINKER_SCRIPT := $(PLATFORM_DIR)/config/xsproj.ld
+ifeq ($(USE_QSPI),1)
+	LINKER_SCRIPT := $(PLATFORM_DIR)/config/qspi_xsproj.ld
+else
+	LINKER_SCRIPT := $(PLATFORM_DIR)/config/xsproj.ld
+endif
 
 # Utility functions
 git_description = $(shell git -C  $(1) describe --tags --always --dirty 2>/dev/null)
