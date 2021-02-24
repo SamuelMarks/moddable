@@ -153,7 +153,7 @@ static void serial_task(void *pvParameter) {
 		}
 		else if (SERIAL_RX_FIFO_OVERFLOW == msg) {
 			serialrxoverflow++;
-			modLog("rx fifo overflow error\n");
+			ftdiTrace("rx fifo overflow error\n");
 		}
 
 		if (fifo_length(&ser_rx_fifo))
@@ -211,6 +211,7 @@ void serial_putc(int c) {
 
 	ch = c;
 	while (fifo_length(&ser_tx_fifo) > ser_tx_fifo.buf_size_mask) {
+		ftdiTraceAndInt("putc waiting", serwaiting);
 		serwaiting++;
 		taskYIELD();
 	}
