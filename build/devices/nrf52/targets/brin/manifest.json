@@ -5,7 +5,8 @@
 		"DEBUGGER_SPEED": "921600",
 		"xDEBUGGER_SPEED": "115200",
 		"FTDI_TRACE": "-DUSE_FTDI_TRACE=1",
-		"QSPI_INI_PATH": "$(MODDABLE)/build/devices/nrf52/targets/brin/QspiDefault.ini"
+		"QSPI_INI_PATH": "$(MODDABLE)/build/devices/nrf52/targets/brin/QspiDefault.ini",
+		"QSPI_INI_PATH_WIN": "$(MODDABLE)\\build\\devices\\nrf52\\targets\\brin\\QspiDefault.ini"
 	},
 	"include": [
 		"$(MODULES)/drivers/ili9341/manifest.json",

@@ -110,12 +110,16 @@ SERIAL_2_XSBUG =
 NORESTART =
 !ENDIF
 
+!IF "$(FTDI_TRACE)"==""
+FTDI_TRACE = -DUSE_FTDI_TRACE=0
+!ENDIF
+
 # nRF52840_xxAA
 BOARD = pca10056
 BOARD_DEF = BOARD_MODDABLE_FOUR
 
 !IF "$(HEAP_SIZE)"==""
-HEAP_SIZE = 0x32F00
+HEAP_SIZE = 0x32800
 !ENDIF
 
 HWCPU = cortex-m4
@@ -140,6 +144,12 @@ FTDI_TRACE = -DUSE_FTDI_TRACE=1
 !ELSE
 DEBUGGER_USBD = -DUSE_DEBUGGER_USBD=0
 FTDI_TRACE = -DUSE_FTDI_TRACE=0
+!ENDIF
+
+!IF "$(USE_QSPI)"=="1"
+LINKER_SCRIPT = $(PLATFORM_DIR)\config\qspi_xsproj.ld
+!ELSE
+LINKER_SCRIPT = $(PLATFORM_DIR)\config\xsproj.ld
 !ENDIF
 
 GCC_INCLUDES=-iprefix $(NRF52_GCC_ROOT)\ \
@@ -169,10 +179,12 @@ NRF_SDK_INCLUDES=-iprefix $(NRF52_SDK_ROOT)\components\libraries\ \
 	-iwithprefix delay \
 	-iwithprefix experimental_section_vars \
 	-iwithprefix fds \
+	-iwithprefix fifo \
 	-iwithprefix fstorage \
 	-iwithprefix hardfault \
 	-iwithprefix hardfault\nrf52 \
 	-iwithprefix hardfault\nrf52\handler \
+	-iwithprefix libuarte \
 	-iwithprefix log \
 	-iwithprefix log\src \
 	-iwithprefix memobj \
@@ -301,20 +313,19 @@ NRF_DRIVERS_OBJ = \
 	$(LIB_DIR)\nrf_drv_clock.o \
 	$(LIB_DIR)\nrf_drv_power.o \
 	$(LIB_DIR)\nrf_drv_twi.o \
-	$(LIB_DIR)\nrf_drv_uart.o \
 	$(LIB_DIR)\nrfx_atomic.o \
 	$(LIB_DIR)\nrfx_clock.o \
 	$(LIB_DIR)\nrfx_gpiote.o \
 	$(LIB_DIR)\nrfx_lpcomp.o \
 	$(LIB_DIR)\nrfx_power.o \
+	$(LIB_DIR)\nrfx_ppi.o \
 	$(LIB_DIR)\nrfx_prs.o \
 	$(LIB_DIR)\nrfx_qdec.o \
 	$(LIB_DIR)\nrfx_saadc.o \
 	$(LIB_DIR)\nrfx_spim.o \
 	$(LIB_DIR)\nrfx_systick.o \
+	$(LIB_DIR)\nrfx_timer.o \
 	$(LIB_DIR)\nrfx_twim.o \
-	$(LIB_DIR)\nrfx_uart.o \
-	$(LIB_DIR)\nrfx_uarte.o \
 	$(LIB_DIR)\nrfx_wdt.o
 
 NRF_CRYPTO_BACKEND_CC310_OBJ = \
@@ -349,10 +360,13 @@ NRF_LIBRARIES_OBJ = \
 	$(LIB_DIR)\nrf_atflags.o \
 	$(LIB_DIR)\nrf_atomic.o \
 	$(LIB_DIR)\nrf_balloc.o \
+	$(LIB_DIR)\app_fifo.o \
 	$(LIB_DIR)\nrf_fprintf.o \
 	$(LIB_DIR)\nrf_fprintf_format.o \
 	$(LIB_DIR)\nrf_fstorage_sd.o \
 	$(LIB_DIR)\nrf_fstorage.o \
+	$(LIB_DIR)\nrf_libuarte_drv.o \
+	$(LIB_DIR)\nrf_libuarte_async.o \
 	$(LIB_DIR)\nrf_memobj.o \
 	$(LIB_DIR)\nrf_queue.o \
 	$(LIB_DIR)\nrf_ringbuf.o \
@@ -388,6 +402,7 @@ SDK_GLUE_OBJ = \
 	$(TMP_DIR)\debugger_usbd.o \
 	$(TMP_DIR)\ftdi_trace.o \
 	$(TMP_DIR)\main.o \
+	$(TMP_DIR)\nrf52_serial.o \
 	$(TMP_DIR)\systemclock.o \
 	$(TMP_DIR)\xsmain.o \
 	$(TMP_DIR)\app_usbd_vendor.o
@@ -588,7 +603,6 @@ LDFLAGS = \
 
 C_INCLUDES = $(GCC_INCLUDES) $(C_INCLUDES) $(DIRECTORIES) $(SDK_GLUE_INCLUDES) $(XS_INCLUDES) -I$(LIB_DIR) -I$(TMP_DIR) -I$(PLATFORM_DIR) $(NRF_SDK_INCLUDES)
 
-LINKER_SCRIPT = $(PLATFORM_DIR)\config\xsproj.ld
 
 .PHONY: all
 .SUFFIXES: .S .s
@@ -616,16 +630,22 @@ clean:
 	if exist $(LIB_DIR) del /s/q/f $(LIB_DIR)\*.* > NUL
 	if exist $(LIB_DIR) rmdir /s/q $(LIB_DIR)
 
-NRFJPROG_ARGS = -f nrf52 --qspiini $(QSPI_INI_PATH)
+NRFJPROG_ARGS = -f nrf52 --qspiini $(QSPI_INI_PATH_WIN) --log
 flash: precursor $(BIN_DIR)\xs_nrf52.hex
 	@echo Flashing: $(BIN_DIR)\xs_nrf52.hex
+	@echo # $(NRFJPROG) $(NRFJPROG_ARGS) --program $(BIN_DIR)\xs_nrf52.hex --qspisectorerase --sectorerase
 	$(NRFJPROG) $(NRFJPROG_ARGS) --program $(BIN_DIR)\xs_nrf52.hex --qspisectorerase --sectorerase
+	@echo # $(NRFJPROG) $(NRFJPROG_ARGS) --verify $(BIN_DIR)\xs_nrf52.hex
 	$(NRFJPROG) $(NRFJPROG_ARGS) --verify $(BIN_DIR)\xs_nrf52.hex
+	@echo # $(NRFJPROG) --reset
 	$(NRFJPROG) --reset
 
 debugger:
 	$(DO_XSBUG)
 	$(MODDABLE_TOOLS_DIR)\serial2xsbug $(DEBUGGER_PORT) $(DEBUGGER_SPEED) 8N1 -dtr $(NORESTART)
+
+build: precursor $(BIN_DIR)\xs_nrf52.hex
+	@echo Target built: $(BIN_DIR)\xs_nrf52.hex
 
 brin: flash debugger
 
@@ -763,6 +783,10 @@ $(LIB_DIR)\xsPlatform.o: $(XS_DIR)\platforms\nrf52\xsPlatform.c
 	@echo # library: $(@F)
 	$(CC) $(C_FLAGS) $(C_DEFINES) $(C_INCLUDES) $< -o $@
 
+{$(NRF52_SDK_ROOT)\components\libraries\fifo\}.c{$(LIB_DIR)\}.o:
+	@echo # library: $(@F)
+	$(CC) $(C_FLAGS) $(C_DEFINES) $(C_INCLUDES) $< -o $@
+
 {$(NRF52_SDK_ROOT)\components\libraries\fstorage\}.c{$(LIB_DIR)\}.o:
 	@echo # library: $(@F)
 	$(CC) $(C_FLAGS) $(C_DEFINES) $(C_INCLUDES) $< -o $@
@@ -772,6 +796,10 @@ $(LIB_DIR)\xsPlatform.o: $(XS_DIR)\platforms\nrf52\xsPlatform.c
 	$(CC) $(C_FLAGS) $(C_DEFINES) $(C_INCLUDES) $< -o $@
 
 {$(NRF52_SDK_ROOT)\components\libraries\hardfault\nrf52\handler\}.c{$(LIB_DIR)\}.o:
+	@echo # library: $(@F)
+	$(CC) $(C_FLAGS) $(C_DEFINES) $(C_INCLUDES) $< -o $@
+
+{$(NRF52_SDK_ROOT)\components\libraries\libuarte\}.c{$(LIB_DIR)\}.o:
 	@echo # library: $(@F)
 	$(CC) $(C_FLAGS) $(C_DEFINES) $(C_INCLUDES) $< -o $@
 
