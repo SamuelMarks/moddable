@@ -44,8 +44,9 @@
 typedef struct SerialRecord SerialRecord;
 typedef struct SerialRecord *Serial;
 
+// transmit buffer needs to be bigger to avoid overflow on echo. Why?
 #define kReceiveBytes (256)
-#define kTransmitBytes (256)
+#define kTransmitBytes (kReceiveBytes * 3)
 
 struct SerialRecord {
 	xsSlot		obj;
@@ -55,12 +56,12 @@ struct SerialRecord {
 	int32_t		receivePin;
 
 	uint8_t		receiveTriggered;
-	uint16_t		receiveCount;
+	uint16_t	receiveCount;
 	uint8_t		receive[kReceiveBytes];
 
 	uint8_t		transmit[kTransmitBytes];
-	uint16_t		transmitPosition;
-	uint16_t		transmitSent;
+	uint16_t	transmitPosition;
+	uint16_t	transmitSent;
 	uint8_t		transmitTriggered;
 
 	xsMachine	*the;
@@ -397,10 +398,11 @@ void uart_handler(void *p_context, nrf_libuarte_async_evt_t *p_event)
 				length = kReceiveBytes - serial->receiveCount;
 			c_memmove(&serial->receive[serial->receiveCount], p_event->data.rxtx.p_data, length);
 			serial->receiveCount += length;
-			if (!serial->receiveTriggered) {
-				serial->receiveTriggered = true;
-				if (!serial->transmitTriggered)
+			if (serial->onReadable && !serial->receiveTriggered) {
+				if (!serial->transmitTriggered) {
+					serial->receiveTriggered = true;
 					modMessagePostToMachineFromISR(serial->the, serialDeliver, serial);
+				}
 			}
 		}
 		
@@ -411,12 +413,17 @@ void uart_handler(void *p_context, nrf_libuarte_async_evt_t *p_event)
 
 		if (serial->transmitSent == serial->transmitPosition) {
 			serial->transmitSent = serial->transmitPosition = 0;
-			serial->transmitTriggered = true;
-			if (!serial->receiveTriggered)
+			if (serial->onWritable && !serial->receiveTriggered) {
+				serial->transmitTriggered = true;
 				modMessagePostToMachineFromISR(serial->the, serialDeliver, serial);
+			}
 		}
-		else
-			nrf_libuarte_async_tx(&serial->uart, &serial->transmit[serial->transmitSent], serial->transmitPosition - serial->transmitSent);
+		else {
+			c_memmove(serial->transmit, &serial->transmit[serial->transmitSent], serial->transmitPosition - serial->transmitSent);
+			serial->transmitPosition -= serial->transmitSent;
+			serial->transmitSent = 0;
+			nrf_libuarte_async_tx(&serial->uart, serial->transmit, serial->transmitPosition);
+		}
 	}
 }
 
