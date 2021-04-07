@@ -323,6 +323,7 @@ NRF_DRIVERS_OBJ = \
 	$(LIB_DIR)\nrfx_qdec.o \
 	$(LIB_DIR)\nrfx_saadc.o \
 	$(LIB_DIR)\nrfx_spim.o \
+	$(LIB_DIR)\nrfx_spis.o \
 	$(LIB_DIR)\nrfx_systick.o \
 	$(LIB_DIR)\nrfx_timer.o \
 	$(LIB_DIR)\nrfx_twim.o \

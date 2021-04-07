@@ -3261,7 +3261,7 @@
 // <e> NRFX_SPIS_ENABLED - nrfx_spis - SPIS peripheral driver
 //==========================================================
 #ifndef NRFX_SPIS_ENABLED
-#define NRFX_SPIS_ENABLED 0
+#define NRFX_SPIS_ENABLED 1
 #endif
 // <q> NRFX_SPIS0_ENABLED  - Enable SPIS0 instance
  
@@ -3281,7 +3281,7 @@
  
 
 #ifndef NRFX_SPIS2_ENABLED
-#define NRFX_SPIS2_ENABLED 0
+#define NRFX_SPIS2_ENABLED 1
 #endif
 
 // <o> NRFX_SPIS_DEFAULT_CONFIG_IRQ_PRIORITY  - Interrupt priority
@@ -5139,7 +5139,7 @@
 // <e> SPIS_ENABLED - nrf_drv_spis - SPIS peripheral driver - legacy layer
 //==========================================================
 #ifndef SPIS_ENABLED
-#define SPIS_ENABLED 0
+#define SPIS_ENABLED 1
 #endif
 // <o> SPIS_DEFAULT_CONFIG_IRQ_PRIORITY  - Interrupt priority
  
@@ -5210,7 +5210,7 @@
  
 
 #ifndef SPIS2_ENABLED
-#define SPIS2_ENABLED 0
+#define SPIS2_ENABLED 1
 #endif
 
 // </e>
@@ -11498,6 +11498,8 @@
 #define NRF_LIBUARTE_ASYNC_WITH_APP_TIMER 1
 #define NRF_LIBUARTE_DRV_UARTE0 1
 #define NRF_LIBUARTE_DRV_UARTE1 1
+// #define SPIS_NRF52_ANOMALY_109_WORKAROUND_ENABLED 1
+//#define USE_DMA_ISSUE_WORKAROUND 1
 // <<< end of configuration section >>>
 #endif //SDK_CONFIG_H
 

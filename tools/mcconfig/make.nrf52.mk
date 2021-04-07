@@ -108,7 +108,7 @@ BOARD_DEF = BOARD_MODDABLE_FOUR
 #HEAP_SIZE = 0x13000
 HEAP_SIZE ?= 0x32800
 
-HW_DEBUG_OPT = $(FP_OPTS) # -flto
+HW_DEBUG_OPT = -O0 $(FP_OPTS) # -flto
 HW_OPT = -O2 $(FP_OPTS) # -flto
 
 ifeq ($(DEBUG),1)
@@ -455,6 +455,7 @@ NRF_DRIVERS = \
 	$(LIB_DIR)/nrfx_qdec.c.o \
 	$(LIB_DIR)/nrfx_saadc.c.o \
 	$(LIB_DIR)/nrfx_spim.c.o \
+	$(LIB_DIR)/nrfx_spis.c.o \
 	$(LIB_DIR)/nrfx_systick.c.o \
 	$(LIB_DIR)/nrfx_timer.c.o \
 	$(LIB_DIR)/nrfx_twim.c.o \
@@ -871,9 +872,9 @@ $(TMP_DIR)/mc.xs.c: $(MODULES) $(MANIFEST)
 	@echo "# xsl modules"
 	$(XSL) -b $(MODULES_DIR) -o $(TMP_DIR) $(PRELOADS) $(STRIPS) $(CREATION) $(MODULES)
 
-$(TMP_DIR)/mc.resources.c: $(RESOURCES) $(MANIFEST)
+$(TMP_DIR)/mc.resources.c: $(DATA) $(RESOURCES) $(MANIFEST)
 	@echo "# mcrez resources"
-	$(MCREZ) $(RESOURCES) -o $(TMP_DIR) -p nrf52 -r mc.resources.c
+	$(MCREZ) $(DATA) $(RESOURCES) -o $(TMP_DIR) -p nrf52 -r mc.resources.c
 
 MAKEFLAGS += $(MAKEFLAGS_JOBS)
 ifneq ($(VERBOSE),1)
