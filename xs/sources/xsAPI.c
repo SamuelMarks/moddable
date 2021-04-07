@@ -266,7 +266,7 @@ void fxStringX(txMachine* the, txSlot* theSlot, txString theValue)
 
 void fxStringBuffer(txMachine* the, txSlot* theSlot, txString theValue, txSize theSize)
 {
-	theSlot->value.string = (txString)fxNewChunk(the, theSize + 1);
+	theSlot->value.string = (txString)fxNewChunk(the, fxAddChunkSizes(the, theSize, 1));
 	if (theValue)
 		c_memcpy(theSlot->value.string, theValue, theSize);
 	else
@@ -490,7 +490,7 @@ void fxArrayCacheEnd(txMachine* the, txSlot* reference)
 	txIndex length = array->value.array.length;
 	if (length) {
 		txSlot *srcSlot, *dstSlot;
-		array->value.array.address = (txSlot*)fxNewChunk(the, length * sizeof(txSlot));
+		array->value.array.address = (txSlot*)fxNewChunk(the, fxMultiplyChunkSizes(the, length, sizeof(txSlot)));
 		srcSlot = array->next;
 		dstSlot = array->value.array.address + length;
 		while (srcSlot) {
@@ -1246,6 +1246,13 @@ void fxThrowMessage(txMachine* the, txString path, txInteger line, txError error
     slot->value.instance.prototype = mxErrorPrototypes(error).value.reference;
 	mxException.kind = XS_REFERENCE_KIND;
 	mxException.value.reference = slot;
+	slot = slot->next = fxNewSlot(the);
+	slot->flag = XS_INTERNAL_FLAG | XS_GET_ONLY;
+	slot->kind = XS_ERROR_KIND;
+	slot->value.error.info = C_NULL;
+	slot->value.error.which = error;
+	if (gxDefaults.captureErrorStack)
+		gxDefaults.captureErrorStack(the, slot, the->frame);
 	slot = fxNextStringProperty(the, slot, message, mxID(_message), XS_DONT_ENUM_FLAG);
 #ifdef mxDebug
 	fxDebugThrow(the, path, line, message);

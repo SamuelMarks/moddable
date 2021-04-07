@@ -31,6 +31,18 @@ UPLOAD_SPEED ?= 921600
 DEBUGGER_SPEED ?= 921600
 DEBUGGER_PORT ?= $(UPLOAD_PORT)
 
+ifeq ($(USE_QSPI),1)
+	NRFJPROG_ARGS ?= -f nrf52 --qspiini $(QSPI_INI_PATH)
+	BOOTLOADER_HEX ?= $(PLATFORM_DIR)/bootloader/moddable_nrf52_qspi_bootloader-0.2.13-21-g454b281_s140_6.1.1.hex
+else
+	NRFJPROG_ARGS ?= -f nrf52
+	BOOTLOADER_HEX ?= $(PLATFORM_DIR)/bootloader/moddable_nrf52_bootloader-0.2.13-21-g454b281_s140_6.1.1.hex
+endif
+
+UPLOAD_SPEED ?= 921600
+DEBUGGER_SPEED ?= 921600
+DEBUGGER_PORT ?= $(UPLOAD_PORT)
+
 PLATFORM_DIR = $(MODDABLE)/build/devices/nrf52
 
 NRF_SERIAL_PORT ?= /dev/cu.usbmodem0000000000001
@@ -87,10 +99,7 @@ BOARD = pca10056
 SOFT_DEVICE = s140
 HWCPU = cortex-m4
 
-# BOOTLOADER_HEX ?= $(PLATFORM_DIR)/bootloader/moddable_four_bootloader-0.2.13-21-g454b281_s140_6.1.1.hex
-# SOFTDEVICE_HEX ?= $(NRF_SDK_DIR)/components/softdevice/s140/hex/s140_nrf52_6.1.1_softdevice.hex
-SOFTDEVICE_HEX ?= $(NRF_SDK_DIR)/components/softdevice/s140/hex/s140_nrf52_7.0.1_softdevice.hex
-# SOFTDEVICE_HEX ?= $(NRF_SDK_DIR)/components/softdevice/s140/hex/s140_nrf52_7.2.0_softdevice.hex
+SOFTDEVICE_HEX ?= $(NRF_SDK_DIR)/components/softdevice/s140/hex/s140_nrf52_7.0.2_softdevice.hex
 
 # BOARD_DEF = BOARD_PCA10056
 # BOARD_DEF = BOARD_SPARKFUN_NRF52840_MINI
@@ -701,7 +710,16 @@ SCRIPTS=\
 $(MODDABLE_TOOLS_DIR)/findUSBLinux: $(PLATFORM_DIR)/config/findUSBLinux
 	cp  $(PLATFORM_DIR)/config/findUSBLinux $(MODDABLE_TOOLS_DIR)/findUSBLinux
 
-precursor: $(SCRIPTS) $(BLE) $(TMP_DIR) $(LIB_DIR) $(OTHER_STUFF) $(BIN_DIR)/xs_nrf52.hex
+precursor: mod_sdk $(SCRIPTS) $(BLE) $(TMP_DIR) $(LIB_DIR) $(OTHER_STUFF) $(BIN_DIR)/xs_nrf52.hex
+
+sdk_mod_txt="nRF5 SDK needs to be modified to support SPIM3 - See https://github.com/Moddable-OpenSource/moddable/blob/public/documentation/devices/moddable-four.md for details."
+
+sdk_mod := $(shell grep 'SPIM3' $(NRF_SDK_DIR)/integration/nrfx/legacy/apply_old_config.h > /dev/null 2>&1 ; echo $$?)
+
+mod_sdk:
+ifeq ($(sdk_mod),1)
+	$(error $(sdk_mod_txt))
+endif
 
 env_vars:
 ifndef NRF_SDK_DIR
@@ -730,13 +748,12 @@ flash: precursor $(BIN_DIR)/xs_nrf52.hex
 debugger:
 	serial2xsbug $(DEBUGGER_PORT) $(DEBUGGER_SPEED) 8N1
 
-xbrin: flash debugger
-brin: flash xsbug
+use_jlink: flash xsbug
 
-# flash_softdevice:
-# 	@echo Flashing: s140_nrf52_7.0.1_softdevice.hex
-# 	$(NRFJPROG) -f nrf52 --program $(SOFTDEVICE_HEX) --sectorerase
-# 	$(NRFJPROG) -f nrf52 --reset
+flash_softdevice:
+	@echo Flashing: s140_nrf52_7.0.1_softdevice.hex
+	$(NRFJPROG) -f nrf52 --program $(SOFTDEVICE_HEX) --sectorerase
+	$(NRFJPROG) -f nrf52 --reset
 
 $(BIN_DIR)/xs_nrf52.uf2: $(BIN_DIR)/xs_nrf52.hex
 	@echo Making: $(BIN_DIR)/xs_nrf52.uf2 from xs_nrf52.hex

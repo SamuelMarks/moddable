@@ -83,7 +83,7 @@ static const xsHostHooks ICACHE_RODATA_ATTR xsSerialHooks = {
 };
 
 #define SER_UARTE_NAME	gUART
-#define SER_UARTE_IDX	0
+#define SER_UARTE_IDX	1
 #define SER_TIMER0_IDX	1
 #define SER_RTC1_IDX	0
 #define SER_TIMER1_IDX	NRF_LIBUARTE_PERIPHERAL_NOT_USED

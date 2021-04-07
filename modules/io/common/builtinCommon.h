@@ -47,7 +47,7 @@ uint8_t builtinGetCallback(xsMachine *the, xsIndex id, xsSlot *slot);
 	#define builtinCriticalSectionBegin() xt_rsil(0)
 	#define builtinCriticalSectionEnd() xt_rsil(15)
 #elif nrf52
-	#define kPinBanks (1)
+	#define kPinBanks (2)
 
 	#define builtinCriticalSectionBegin() vPortEnterCritical()
 	#define builtinCriticalSectionEnd() vPortExitCritical()
@@ -71,5 +71,7 @@ uint8_t builtinSetFormat(xsMachine *the);
 
 void builtinInitializeTarget(xsMachine *the);
 uint8_t builtinInitializeFormat(xsMachine *the, uint8_t format);
+
+void *builtinGetBufferPointer(xsMachine *the, xsSlot *slot, uint32_t *byteLength);
 
 #endif

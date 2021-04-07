@@ -46,15 +46,15 @@
 #ifndef mxFill
 #define mxFill 0
 #endif
+#ifndef mxNoChunks
+#define mxNoChunks 0
+#endif
 
 #if mxStress
 int gxStress = 0;
 #endif
 
 #define mxChunkFlag 0x80000000
-
-//#define mxRoundSize(_SIZE) ((_SIZE + (sizeof(txChunk) - 1)) & ~(sizeof(txChunk) - 1))
-#define mxRoundSize(_SIZE) ((_SIZE + (sizeof(txSize) - 1)) & ~(sizeof(txSize) - 1))
 
 static void fxGrowChunks(txMachine* the, txSize theSize); 
 static void fxGrowSlots(txMachine* the, txSize theCount); 
@@ -120,6 +120,19 @@ txSample gxCompactChunkTime = { { 0, 0 }, { 0, 0 }, 0, "compact chunk" };
 
 #endif
 
+txSize fxAddChunkSizes(txMachine* the, txSize a, txSize b)
+{
+	txSize c;
+#if __has_builtin(__builtin_add_overflow)
+	if (__builtin_add_overflow(a, b, &c)) {
+#else
+	c = a + b;
+	if (((a ^ c) & (b ^ c)) < 0) {
+#endif
+		fxAbort(the, XS_NOT_ENOUGH_MEMORY_EXIT);
+	}
+	return c;
+}
 
 void fxCheckStack(txMachine* the, txSlot* slot)
 {
@@ -156,7 +169,10 @@ void fxAllocate(txMachine* the, txCreation* theCreation)
 	the->firstBlock = C_NULL;
 	the->firstHeap = C_NULL;
 
+#if mxNoChunks
+#else
 	fxGrowChunks(the, theCreation->initialChunkSize);
+#endif
 
 	the->stackBottom = fxAllocateSlots(the, theCreation->stackCount);
 	the->stackTop = the->stackBottom + theCreation->stackCount;
@@ -205,6 +221,35 @@ void fxCollect(txMachine* the, txBoolean theFlag)
 #ifdef mxProfile
 	fxBeginGC(the);
 #endif
+#if mxNoChunks
+	if (theFlag) {
+		txSize total = 0;
+		txChunk** address;
+		txChunk* chunk;
+		fxMark(the, fxMarkValue);
+		fxMarkWeakStuff(the, fxMarkValue);
+		address = (txChunk**)&(the->firstBlock);
+		while ((chunk = *address)) {
+			txSize size = chunk->size;
+			if (size & mxChunkFlag) {
+				size &= ~mxChunkFlag;
+				chunk->size = size;
+				address = (txChunk**)&(chunk->temporary);
+				total += size;
+			}
+			else {
+				*address = (txChunk*)(chunk->temporary);
+				c_free(chunk);
+			}
+		}
+		the->currentChunksSize = total;
+	}
+	else {
+		fxMark(the, fxMarkReference);
+		fxMarkWeakStuff(the, fxMarkReference);
+	}
+	{		
+#else
 	if (theFlag) {
 		fxMark(the, fxMarkValue);
 		fxMarkWeakStuff(the, fxMarkValue);
@@ -213,6 +258,7 @@ void fxCollect(txMachine* the, txBoolean theFlag)
 	else {
 		fxMark(the, fxMarkReference);
 		fxMarkWeakStuff(the, fxMarkReference);
+#endif
 	#ifdef mxNever
 		startTime(&gxSweepSlotTime);
 	#endif
@@ -338,12 +384,24 @@ void fxFree(txMachine* the)
 	}
 	the->firstHeap = C_NULL;
 	
+#if mxNoChunks
+	{
+		txChunk** address;
+		txChunk* chunk;
+		address = (txChunk**)&(the->firstBlock);
+		while ((chunk = *address)) {
+			*address = (txChunk*)(chunk->temporary);
+			c_free(chunk);
+		}
+	}
+#else
 	while (the->firstBlock) {
 		aBlock = the->firstBlock;
 		the->firstBlock = aBlock->nextBlock;
 		fxFreeChunks(the, aBlock);
 	}
 	the->firstBlock = C_NULL;
+#endif
 	
 #ifdef mxNever
 	stopTime(&gxLifeTime);
@@ -362,18 +420,17 @@ void fxFree(txMachine* the)
 #endif
 }
 
-#ifndef roundup
-#define roundup(x, y)	((((x) + (y) - 1) / (y)) * (y))
-#endif
-
 void fxGrowChunks(txMachine* the, txSize theSize) 
 {
 	txByte* aData;
 	txBlock* aBlock;
 
-	if (!(the->collectFlag & XS_SKIPPED_COLLECT_FLAG))
-		theSize = roundup(theSize, the->minimumChunksSize);
-	theSize += sizeof(txBlock);
+	if (!(the->collectFlag & XS_SKIPPED_COLLECT_FLAG)) {
+		txSize modulo = theSize % the->minimumChunksSize;
+		if (modulo)
+			fxAddChunkSizes(the, theSize, the->minimumChunksSize - modulo);
+	}
+	theSize = fxAddChunkSizes(the, theSize, sizeof(txBlock));
 	aData = fxAllocateChunks(the, theSize);
 #ifdef mxSnapshot
 	c_memset(aData, 0, theSize);
@@ -657,15 +714,10 @@ void fxMarkReference(txMachine* the, txSlot* theSlot)
 			fxMarkInstance(the, aSlot, fxMarkReference);
 		break;
 		
-	case XS_ERRORS_KIND:
-		aSlot = theSlot->value.errors.first;
-		while (aSlot) {
-			if (!(aSlot->flag & XS_MARK_FLAG)) {
-				aSlot->flag |= XS_MARK_FLAG;
-				fxMarkReference(the, aSlot);
-			}
-			aSlot = aSlot->next;
-		}
+	case XS_ERROR_KIND:
+		aSlot = theSlot->value.error.info;
+		if (aSlot && (!(aSlot->flag & XS_MARK_FLAG)))
+			fxMarkInstance(the, aSlot, fxMarkReference);
 		break;
 	case XS_LIST_KIND:
 		aSlot = theSlot->value.list.first;
@@ -707,6 +759,26 @@ void fxMarkReference(txMachine* the, txSlot* theSlot)
 		}
 		break;
 	case XS_WEAK_MAP_KIND:
+		{ // for read-only keys
+			txSlot** anAddress = theSlot->value.table.address;
+			txInteger aLength = theSlot->value.table.length;
+			while (aLength) {
+				aSlot = *anAddress;
+				while (aSlot) {
+					txSlot* result = aSlot->value.entry.slot;
+					if (result->value.reference->flag & XS_MARK_FLAG) {
+						result = result->next;
+						if (!(result->flag & XS_MARK_FLAG)) {
+							result->flag |= XS_MARK_FLAG; 
+							fxMarkReference(the, result);
+						}
+					}
+					aSlot = aSlot->next;
+				}
+				anAddress++;
+				aLength--;
+			}
+		}
 		theSlot->value.table.address[theSlot->value.table.length] = the->firstWeakMapTable;
 		the->firstWeakMapTable = theSlot;
 		break;
@@ -866,15 +938,10 @@ void fxMarkValue(txMachine* the, txSlot* theSlot)
 			mxMarkChunk(theSlot->value.key.string);
 		break;
 		
-	case XS_ERRORS_KIND:
-		aSlot = theSlot->value.errors.first;
-		while (aSlot) {
-			if (!(aSlot->flag & XS_MARK_FLAG)) {
-				aSlot->flag |= XS_MARK_FLAG;
-				fxMarkValue(the, aSlot);
-			}
-			aSlot = aSlot->next;
-		}
+	case XS_ERROR_KIND:
+		aSlot = theSlot->value.error.info;
+		if (aSlot && (!(aSlot->flag & XS_MARK_FLAG)))
+			fxMarkInstance(the, aSlot, fxMarkValue);
 		break;
 	case XS_LIST_KIND:
 		aSlot = theSlot->value.list.first;
@@ -917,6 +984,26 @@ void fxMarkValue(txMachine* the, txSlot* theSlot)
 		mxMarkChunk(theSlot->value.table.address);
 		break;
 	case XS_WEAK_MAP_KIND:
+		{ // for read-only keys
+			txSlot** anAddress = theSlot->value.table.address;
+			txInteger aLength = theSlot->value.table.length;
+			while (aLength) {
+				aSlot = *anAddress;
+				while (aSlot) {
+					txSlot* result = aSlot->value.entry.slot;
+					if (result->value.reference->flag & XS_MARK_FLAG) {
+						result = result->next;
+						if (!(result->flag & XS_MARK_FLAG)) {
+							result->flag |= XS_MARK_FLAG; 
+							fxMarkValue(the, result);
+						}
+					}
+					aSlot = aSlot->next;
+				}
+				anAddress++;
+				aLength--;
+			}
+		}
 		mxMarkChunk(theSlot->value.table.address);
 		theSlot->value.table.address[theSlot->value.table.length] = the->firstWeakMapTable;
 		the->firstWeakMapTable = theSlot;
@@ -967,9 +1054,6 @@ void fxMarkWeakMapTable(txMachine* the, txSlot* table, void (*theMarker)(txMachi
 			if (result->value.reference->flag & XS_MARK_FLAG) {
 				entry->flag |= XS_MARK_FLAG;
 				result->flag |= XS_MARK_FLAG;
-				result = result->next;
-				result->flag |= XS_MARK_FLAG;
-				(*theMarker)(the, result);
 				link = &(entry->next);
 			}
 			else
@@ -1034,11 +1118,27 @@ void fxMarkWeakStuff(txMachine* the, void (*theMarker)(txMachine*, txSlot*))
 	}
 }
 
+txSize fxMultiplyChunkSizes(txMachine* the, txSize a, txSize b)
+{
+	txSize c;
+#if __has_builtin(__builtin_mul_overflow)
+	if (__builtin_mul_overflow(a, b, &c)) {
+#else
+	txNumber C = (txNumber)a * (txNumber)b;
+	c = (txSize)C;
+	if (C > (txNumber)0x7FFFFFFF) {
+#endif
+		fxAbort(the, XS_NOT_ENOUGH_MEMORY_EXIT);
+	}
+	return c;
+}
+
 void* fxNewChunk(txMachine* the, txSize theSize)
 {
 	txBlock* aBlock;
 	txByte* aData;
 	txBoolean once = 1;
+	txSize modulo = theSize & (sizeof(txSize) - 1);
 	
 #if mxStress
 	if (gxStress) {
@@ -1048,7 +1148,18 @@ void* fxNewChunk(txMachine* the, txSize theSize)
 #endif
     //if (theSize > 1000)
     //	fprintf(stderr, "# fxNewChunk %ld\n", theSize);
-	theSize = mxRoundSize(theSize) + sizeof(txChunk);
+    if (modulo)
+		theSize = fxAddChunkSizes(the, theSize, sizeof(txSize) - modulo);
+	theSize = fxAddChunkSizes(the, theSize, sizeof(txChunk));
+	
+#if mxNoChunks
+	aData = c_malloc(theSize);
+	((txChunk*)aData)->size = theSize;
+	((txChunk*)aData)->temporary = (txByte*)the->firstBlock;
+	the->firstBlock = (txBlock*)aData;
+	return aData + sizeof(txChunk);
+#endif
+	
 again:
 	aBlock = the->firstBlock;
 	while (aBlock) {
@@ -1121,14 +1232,21 @@ void* fxRenewChunk(txMachine* the, void* theData, txSize theSize)
 	txByte* aData = ((txByte*)theData) - sizeof(txChunk);
 	txChunk* aChunk = (txChunk*)aData;
 	txBlock* aBlock = the->firstBlock;
-	theSize = mxRoundSize(theSize) + sizeof(txChunk); 
-	
+	txSize modulo = theSize & (sizeof(txSize) - 1);
+    if (modulo)
+		theSize = fxAddChunkSizes(the, theSize, sizeof(txSize) - modulo);
+	theSize = fxAddChunkSizes(the, theSize, sizeof(txChunk));
 	if (aChunk->size == theSize) {
 	#ifdef mxNever
 		gxRenewChunkCases[0]++;
 	#endif
 		return theData;
 	}
+	
+#if mxNoChunks
+	return C_NULL;
+#endif
+
 	aData += aChunk->size;
 	theSize -= aChunk->size;
 	while (aBlock) {

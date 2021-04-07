@@ -50,7 +50,7 @@
 // We use an app_timer for the timer0
 // - sdk_config.h has NRF_LIBUARTE_UARTE_ASYNC_WITH_APP_TIMER
 #define DBG_UARTE_NAME	gDebuggerUarte
-#define DBG_UARTE_IDX	1
+#define DBG_UARTE_IDX	0
 #define DBG_TIMER0_IDX	2
 #define DBG_RTC1_IDX	0
 #define DBG_TIMER1_IDX	NRF_LIBUARTE_PERIPHERAL_NOT_USED
@@ -99,8 +99,8 @@ uint32_t fillBufFromFifo(app_fifo_t *fifo, uint8_t *buf, uint32_t bufSize) {
 	return i;
 }
 
-// uart_handler happens in IRQ
-static void uart_handler(void *context, nrf_libuarte_async_evt_t *p_event)
+// uarte_handler happens in IRQ
+static void uarte_handler(void *context, nrf_libuarte_async_evt_t *p_event)
 {
 	nrf_libuarte_async_t * p_libuarte = (nrf_libuarte_async_t *)context;
 	uint32_t i, msg = 0;
@@ -194,7 +194,7 @@ void setupDebugger() {
 
 	gUARTQueue = xQueueCreate(DEBUG_QUEUE_LEN, DEBUG_QUEUE_ITEM_SIZE);
 
-	ret = nrf_libuarte_async_init(&gDebuggerUarte, &nrf_libuarte_async_config, uart_handler, (void*)&gDebuggerUarte);
+	ret = nrf_libuarte_async_init(&gDebuggerUarte, &nrf_libuarte_async_config, uarte_handler, (void*)&gDebuggerUarte);
 	if (ret)
 		ftdiTrace("init debuggerUarte failed\n");
 
