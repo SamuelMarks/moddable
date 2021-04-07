@@ -1,0 +1,15 @@
+{
+	"modules": {
+		"pins/spis": "$(MODULES)/pins/spis/*"
+	},
+	"platforms": {
+		"nrf52": {
+			"modules": {
+				"*": "$(MODULES)/pins/spis/nrf52/*"
+			}
+		},
+		"...": {
+			"error": "pins/spis module unsupported"
+		}
+	}
+}
