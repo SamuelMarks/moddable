@@ -3,8 +3,7 @@
 		"USE_USB": "0",
 		"USE_QSPI": "1",
 		"DEBUGGER_SPEED": "921600",
-		"xDEBUGGER_SPEED": "115200",
-		"FTDI_TRACE": "-DUSE_FTDI_TRACE=1",
+		"FTDI_TRACE": "-DUSE_FTDI_TRACE=0",
 		"QSPI_INI_PATH": "$(MODDABLE)/build/devices/nrf52/targets/brin/QspiDefault.ini",
 		"QSPI_INI_PATH_WIN": "$(MODDABLE)\\build\\devices\\nrf52\\targets\\brin\\QspiDefault.ini"
 	},
@@ -83,7 +82,7 @@
 			"rx_pin": "NRF_GPIO_PIN_MAP(0,31)",
 			"baudrate": "NRF_UARTE_BAUDRATE_921600"
 		},
-		"serial": {
+		"xserial": {
 			"tx_pin": "NRF_GPIO_PIN_MAP(0,12)",
 			"rx_pin": "NRF_GPIO_PIN_MAP(0,7)",
 			"baudrate": "NRF_UARTE_BAUDRATE_921600"
