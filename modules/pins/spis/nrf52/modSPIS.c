@@ -18,9 +18,6 @@
  *
  */
 
-#ifndef __MODSPIS_H__
-#define __MODSPIS_H__
-
 #include "xsmc.h"
 #include "xsHost.h"
 #include "mc.xs.h"
@@ -48,16 +45,10 @@
 #endif
 
 #ifndef MODDEF_SPIS_BUFFERSIZE
-	#define MODDEF_SPIS_BUFFERSIZE	(1920)		// two lines 240px * 16bit
+	#define MODDEF_SPIS_BUFFERSIZE	(1920)		// four lines 240px * 16bit
 #endif
 
-static uint8_t *gSPISTxBuffer;
-
 static uint8_t	gSPISInited = 0;
-
-static uint8_t *gUserBuf = NULL;
-static uint32_t gUserBufSize = 0;
-static uint32_t gUserBufLoc = 0;
 
 static const nrfx_spis_t spis_instance = NRFX_SPIS_INSTANCE(SPIS_INSTANCE);
 
@@ -65,8 +56,8 @@ void SPISDeliver(void *the, void *refcon, uint8_t *message, uint16_t messageLeng
 {
 	modSPISConfiguration config = refcon;
 
-	gUserBuf = NULL;
-	gUserBufSize = gUserBufLoc = 0;
+	config->buf = NULL;
+	config->bufSize = config->bufLoc = 0;
 	xsBeginHost(the);
 		xsCall0(config->obj, xsID_onReceived);
 	xsEndHost(the);
@@ -79,15 +70,15 @@ void spis_callback(nrfx_spis_evt_t const *event, void *p_context)
 	ret_code_t ret;
 
 	if (event->evt_type == NRFX_SPIS_XFER_DONE) {
-		gUserBufLoc += event->rx_amount;
-		if (gUserBufLoc >= gUserBufSize) {
+		config->bufLoc += event->rx_amount;
+		if (config->bufLoc >= config->bufSize) {
 			modMessagePostToMachineFromISR(config->the, SPISDeliver, config);
 		}
 		else {
-			avail = gUserBufSize - gUserBufLoc;
+			avail = config->bufSize - config->bufLoc;
 			amount = avail > MODDEF_SPIS_BUFFERSIZE ? MODDEF_SPIS_BUFFERSIZE : avail;
 		
-			nrfx_spis_buffers_set(&spis_instance, NULL, 0, gUserBuf + gUserBufLoc, amount);
+			nrfx_spis_buffers_set(&spis_instance, NULL, 0, config->buf + config->bufLoc, amount);
 		}
 	}
 }
@@ -126,8 +117,6 @@ void xs_spis(xsMachine *the)
 		return;
 	}
 
-//	gSPISTxBuffer = (uint8_t*)c_calloc(1, MODDEF_SPIS_BUFFERSIZE);
-
 	xsRemember(config->obj);
 	xsmcSetHostData(xsThis, config);
 
@@ -155,33 +144,25 @@ void xs_spis_destructor(void *data)
 		// nrf_spis_shutdown
 		nrfx_spis_uninit(&spis_instance);
 
-		c_free(config);
-//		c_free(gSPISTxBuffer);
-	
 		gSPISInited = 0;
 	}
+
+	c_free(config);
 }
 
 void xs_spis_read(xsMachine *the)
 {
 	modSPISConfiguration config = xsmcGetHostData(xsThis);
-	uint8_t *buf = NULL;
-	uint32_t bufSize;
-	int ret;
+	int bufSize;
 
-	buf = xsmcGetHostData(xsArg(0));
+	config->buf = xsmcGetHostData(xsArg(0));
 	xsmcGet(xsResult, xsArg(0), xsID_byteLength);
-	bufSize = xsmcToInteger(xsResult);
-
-	gUserBuf = buf;
-	gUserBufSize = bufSize;
-	gUserBufLoc = 0;
+	bufSize = config->bufSize = xsmcToInteger(xsResult);
+	config->bufLoc = 0;
 
 	if (bufSize > MODDEF_SPIS_BUFFERSIZE)
 		bufSize = MODDEF_SPIS_BUFFERSIZE;
 
-	ret = nrfx_spis_buffers_set(&spis_instance, NULL, 0, gUserBuf, bufSize);
+	nrfx_spis_buffers_set(&spis_instance, NULL, 0, config->buf, bufSize);
 }
-
-#endif
 

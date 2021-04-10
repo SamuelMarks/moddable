@@ -18,8 +18,8 @@
  *
  */
 
-#ifndef __MODSPI_H__
-#define __MODSPI_H__
+#ifndef __MODSPIS_H__
+#define __MODSPIS_H__
 
 #include <xsmc.h>
 #include <xsHost.h> 
@@ -28,18 +28,19 @@
 #include <string.h>
 #include <stdlib.h>
 
-// #include "nrf_drv_spis.h"
-// #include "nrf_gpio.h"
 #include "nrfx_spis.h"
 
 typedef struct modSPISConfigurationRecord modSPISConfigurationRecord;
 typedef struct modSPISConfigurationRecord *modSPISConfiguration;
 
 struct modSPISConfigurationRecord {
-	nrfx_spis_config_t			spis_config;
-	uint8_t						cs_pin;
-	xsMachine 	*the;
-	xsSlot		obj;
+	nrfx_spis_config_t	spis_config;
+	uint8_t				cs_pin;
+	xsMachine 			*the;
+	xsSlot				obj;
+	uint8_t				*buf;
+	uint32_t			bufSize;
+	uint32_t			bufLoc;
 };
 
 typedef struct modSPISConfigurationRecord modSPISConfigurationRecord;
