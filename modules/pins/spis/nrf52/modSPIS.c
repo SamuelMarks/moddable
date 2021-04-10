@@ -48,7 +48,7 @@
 #endif
 
 #ifndef MODDEF_SPIS_BUFFERSIZE
-	#define MODDEF_SPIS_BUFFERSIZE	(480*2)		// two lines 240px * 16bit
+	#define MODDEF_SPIS_BUFFERSIZE	(1920)		// two lines 240px * 16bit
 #endif
 
 static uint8_t *gSPISTxBuffer;
@@ -87,7 +87,7 @@ void spis_callback(nrfx_spis_evt_t const *event, void *p_context)
 			avail = gUserBufSize - gUserBufLoc;
 			amount = avail > MODDEF_SPIS_BUFFERSIZE ? MODDEF_SPIS_BUFFERSIZE : avail;
 		
-			nrfx_spis_buffers_set(&spis_instance, gSPISTxBuffer, MODDEF_SPIS_BUFFERSIZE, gUserBuf + gUserBufLoc, amount);
+			nrfx_spis_buffers_set(&spis_instance, NULL, 0, gUserBuf + gUserBufLoc, amount);
 		}
 	}
 }
@@ -126,7 +126,7 @@ void xs_spis(xsMachine *the)
 		return;
 	}
 
-	gSPISTxBuffer = (uint8_t*)c_calloc(1, MODDEF_SPIS_BUFFERSIZE);
+//	gSPISTxBuffer = (uint8_t*)c_calloc(1, MODDEF_SPIS_BUFFERSIZE);
 
 	xsRemember(config->obj);
 	xsmcSetHostData(xsThis, config);
@@ -156,7 +156,7 @@ void xs_spis_destructor(void *data)
 		nrfx_spis_uninit(&spis_instance);
 
 		c_free(config);
-		c_free(gSPISTxBuffer);
+//		c_free(gSPISTxBuffer);
 	
 		gSPISInited = 0;
 	}
@@ -169,11 +169,7 @@ void xs_spis_read(xsMachine *the)
 	uint32_t bufSize;
 	int ret;
 
-	if (xsmcIsInstanceOf(xsArg(0), xsArrayBufferPrototype))
-		buf = xsmcToArrayBuffer(xsArg(0));
-	else
-		buf = xsmcGetHostData(xsArg(0));
-
+	buf = xsmcGetHostData(xsArg(0));
 	xsmcGet(xsResult, xsArg(0), xsID_byteLength);
 	bufSize = xsmcToInteger(xsResult);
 
@@ -184,9 +180,8 @@ void xs_spis_read(xsMachine *the)
 	if (bufSize > MODDEF_SPIS_BUFFERSIZE)
 		bufSize = MODDEF_SPIS_BUFFERSIZE;
 
-	ret = nrfx_spis_buffers_set(&spis_instance, gSPISTxBuffer, bufSize, gUserBuf, bufSize);
+	ret = nrfx_spis_buffers_set(&spis_instance, NULL, 0, gUserBuf, bufSize);
 }
 
 #endif
-
 

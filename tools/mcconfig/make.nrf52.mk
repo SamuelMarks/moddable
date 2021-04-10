@@ -751,6 +751,8 @@ debugger:
 
 use_jlink: flash xsbug
 
+brin: flash xsbug
+
 flash_softdevice:
 	@echo Flashing: s140_nrf52_7.0.1_softdevice.hex
 	$(NRFJPROG) -f nrf52 --program $(SOFTDEVICE_HEX) --sectorerase
