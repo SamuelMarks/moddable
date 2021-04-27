@@ -645,8 +645,8 @@ debugger:
 	$(DO_XSBUG)
 	$(MODDABLE_TOOLS_DIR)\serial2xsbug $(DEBUGGER_PORT) $(DEBUGGER_SPEED) 8N1 -dtr $(NORESTART)
 
-build: precursor $(BIN_DIR)\xs_nrf52.hex
-	@echo Target built: $(BIN_DIR)\xs_nrf52.hex
+build: precursor $(BIN_DIR)\xs_nrf52.uf2
+	@echo Target built: $(BIN_DIR)\xs_nrf52.uf2
 
 brin: flash debugger
 
