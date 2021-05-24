@@ -1154,7 +1154,6 @@ void* fxNewChunk(txMachine* the, txSize theSize)
 	the->firstBlock = (txBlock*)aData;
 	return aData + sizeof(txChunk);
 #endif
-	
 again:
 	aBlock = the->firstBlock;
 	while (aBlock) {
