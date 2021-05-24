@@ -33,9 +33,11 @@ DEBUGGER_PORT ?= $(UPLOAD_PORT)
 
 ifeq ($(USE_QSPI),1)
 	NRFJPROG_ARGS ?= -f nrf52 --qspiini $(QSPI_INI_PATH)
+	NRFJPROG_ERASE = --qspisectorerase --sectorerase
 	BOOTLOADER_HEX ?= $(PLATFORM_DIR)/bootloader/moddable_nrf52_qspi_bootloader-0.2.13-21-g454b281_s140_6.1.1.hex
 else
 	NRFJPROG_ARGS ?= -f nrf52
+	NRFJPROG_ERASE = --sectorerase
 	BOOTLOADER_HEX ?= $(PLATFORM_DIR)/bootloader/moddable_nrf52_bootloader-0.2.13-21-g454b281_s140_6.1.1.hex
 endif
 
@@ -742,7 +744,7 @@ allclean:
 
 flash: precursor $(BIN_DIR)/xs_nrf52.hex
 	@echo Flashing: $(BIN_DIR)/xs_nrf52.hex
-	$(NRFJPROG) $(NRFJPROG_ARGS) --program $(BIN_DIR)/xs_nrf52.hex --qspisectorerase --sectorerase
+	$(NRFJPROG) $(NRFJPROG_ARGS) --program $(BIN_DIR)/xs_nrf52.hex $(NRFJPROG_ERASE)
 	$(NRFJPROG) $(NRFJPROG_ARGS) --verify $(BIN_DIR)/xs_nrf52.hex
 	$(NRFJPROG) --reset
 
