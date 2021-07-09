@@ -744,9 +744,9 @@ allclean:
 
 flash: precursor $(BIN_DIR)/xs_nrf52.hex
 	@echo Flashing: $(BIN_DIR)/xs_nrf52.hex
-	$(NRFJPROG) $(NRFJPROG_ARGS) --program $(BIN_DIR)/xs_nrf52.hex $(NRFJPROG_ERASE)
-	$(NRFJPROG) $(NRFJPROG_ARGS) --verify $(BIN_DIR)/xs_nrf52.hex
-	$(NRFJPROG) --reset
+	"$(NRFJPROG)" $(NRFJPROG_ARGS) --program $(BIN_DIR)/xs_nrf52.hex $(NRFJPROG_ERASE)
+	"$(NRFJPROG)" $(NRFJPROG_ARGS) --verify $(BIN_DIR)/xs_nrf52.hex
+	"$(NRFJPROG)" --reset
 
 debugger:
 	serial2xsbug $(DEBUGGER_PORT) $(DEBUGGER_SPEED) 8N1
@@ -757,21 +757,21 @@ brin: flash xsbug
 
 flash_softdevice:
 	@echo Flashing: s140_nrf52_7.0.1_softdevice.hex
-	$(NRFJPROG) -f nrf52 --program $(SOFTDEVICE_HEX) --sectorerase
-	$(NRFJPROG) -f nrf52 --reset
+	"$(NRFJPROG)" -f nrf52 --program $(SOFTDEVICE_HEX) --sectorerase
+	"$(NRFJPROG)" -f nrf52 --reset
 
 $(BIN_DIR)/xs_nrf52.uf2: $(BIN_DIR)/xs_nrf52.hex
 	@echo Making: $(BIN_DIR)/xs_nrf52.uf2 from xs_nrf52.hex
 	$(UF2CONV) $(BIN_DIR)/xs_nrf52.hex -c -f 0xADA52840 -o $(BIN_DIR)/xs_nrf52.uf2
 
 installBootloader:
-	$(NRFJPROG) --reset --program $(BOOTLOADER_HEX) -f nrf52 --sectoranduicrerase
+	"$(NRFJPROG)" --reset --program $(BOOTLOADER_HEX) -f nrf52 --sectoranduicrerase
 
 installSoftdevice:	
-	$(NRFJPROG) --program $(SOFTDEVICE_HEX) -f nrf52 --chiperase --reset
+	"$(NRFJPROG)" --program $(SOFTDEVICE_HEX) -f nrf52 --chiperase --reset
 
 erase:
-	$(NRFJPROG) -f nrf52 --eraseall
+	"$(NRFJPROG)" -f nrf52 --eraseall
 
 $(BIN_DIR)/xs_nrf52-merged.hex: $(BOOTLOADER_HEX) $(BIN_DIR)/xs_nrf52.hex
 	@echo CR $<
@@ -795,9 +795,9 @@ xall: $(TMP_DIR) $(LIB_DIR) $(BIN_DIR)/xs_nrf52.hex
 	$(KILL_SERIAL_2_XSBUG)
 	$(DO_XSBUG)
 	@echo Flashing xs_nrf52.hex to device.
-	$(NRFJPROG) -f nrf52 --program $(TMP_DIR)/xs_nrf52.hex --sectorerase
+	"$(NRFJPROG)" -f nrf52 --program $(TMP_DIR)/xs_nrf52.hex --sectorerase
 	@echo Resetting the device.
-	$(NRFJPROG) -f nrf52 --reset
+	"$(NRFJPROG)" -f nrf52 --reset
 
 $(NRF52_SDK_ROOT)/components/boards/moddable_four.h:
 	$(error ## Please add moddable_four.h to your nRF52 SDK. See https://github.com/Moddable-OpenSource/moddable/blob/public/documentation/devices/moddable-four.md for details.)
