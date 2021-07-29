@@ -139,7 +139,7 @@ DEBUGGER_USBD = -DUSE_DEBUGGER_USBD=1
 FTDI_TRACE = -DUSE_FTDI_TRACE=0
 !ELSE
 DEBUGGER_USBD = -DUSE_DEBUGGER_USBD=0
-FTDI_TRACE = -DUSE_FTDI_TRACE=1
+FTDI_TRACE = -DUSE_FTDI_TRACE=0
 !ENDIF
 !ELSE
 DEBUGGER_USBD = -DUSE_DEBUGGER_USBD=0
@@ -649,6 +649,8 @@ build: precursor $(BIN_DIR)\xs_nrf52.uf2
 	@echo Target built: $(BIN_DIR)\xs_nrf52.uf2
 
 brin: flash debugger
+
+use_jlink: flash debugger
 
 xsbug:
 	$(KILL_SERIAL_2_XSBUG)
