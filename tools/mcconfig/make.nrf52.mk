@@ -31,6 +31,12 @@ UPLOAD_SPEED ?= 921600
 DEBUGGER_SPEED ?= 921600
 DEBUGGER_PORT ?= $(UPLOAD_PORT)
 
+# for memory calculation
+SOFTDEVICE_ADDR = 0x27000
+SOFTDEVICE_RAM = 0x4200
+MOD_PREFS_SIZE = 0x2000
+BOOTLOADER_SIZE = 0xC000
+
 ifeq ($(USE_QSPI),1)
 	NRFJPROG_ARGS ?= -f nrf52 --qspiini $(QSPI_INI_PATH)
 	NRFJPROG_ERASE = --qspisectorerase --sectorerase
@@ -89,8 +95,10 @@ else
 	endif
 endif
 
-NRF52_GNU_VERSION ?= 8.2.1
-NRF52_GCC_ROOT ?= $(NRF_ROOT)/gcc-arm-none-eabi-8-2018-q4-major
+# NRF52_GNU_VERSION ?= 8.2.1
+# NRF52_GCC_ROOT ?= $(NRF_ROOT)/gcc-arm-none-eabi-8-2018-q4-major
+NRF52_GNU_VERSION ?= 7.2.1
+NRF52_GCC_ROOT ?= $(NRF_ROOT)/gcc-arm-none-eabi-7-2017-q4-major
 
 NRFJPROG ?= $(NRF_ROOT)/nrfjprog/nrfjprog
 UF2CONV ?= $(NRF_ROOT)/uf2conv.py
@@ -110,7 +118,7 @@ BOARD_DEF = BOARD_MODDABLE_FOUR
 #HEAP_SIZE = 0x13000
 HEAP_SIZE ?= 0x32800
 
-HW_DEBUG_OPT = -O0 $(FP_OPTS) # -flto
+HW_DEBUG_OPT = $(FP_OPTS) # -flto
 HW_OPT = -O2 $(FP_OPTS) # -flto
 
 ifeq ($(DEBUG),1)
@@ -160,15 +168,18 @@ ASMFLAGS += -DSVC_INTERFACE_CALL_AS_NORMAL_FUNCTION
 ASMFLAGS += -D__HEAP_SIZE=$(HEAP_SIZE)
 
 # Linker flags
-LDFLAGS += -mthumb -mabi=aapcs -L$(NRF52_SDK_ROOT)/modules/nrfx/mdk -T$(LINKER_SCRIPT)
-LDFLAGS += -mcpu=cortex-m4
-LDFLAGS += -mfloat-abi=hard -mfpu=fpv4-sp-d16
-# LDFLAGS += $(FP_OPTS)
-# let linker dump unused sections
-LDFLAGS += -Wl,--gc-sections
-# use newlib in nano version
-LDFLAGS += --specs=nano.specs
-LDFLAGS += -Xlinker -no-enum-size-warning -Xlinker -Map=$(BIN_DIR)/xs_lib.map
+LDFLAGS += \
+	-mabi=aapcs \
+	-mcpu=cortex-m4 \
+	-mfloat-abi=hard \
+	-mfpu=fpv4-sp-d16 \
+	-mthumb \
+	--specs=nano.specs \
+	-L$(NRF52_SDK_ROOT)/modules/nrfx/mdk \
+	-T$(LINKER_SCRIPT) \
+	-Wl,--gc-sections \
+	-Xlinker -no-enum-size-warning \
+	-Xlinker -Map=$(BIN_DIR)/xs_lib.map
 
 LIB_FILES += \
 	-lc -lnosys -lm \
@@ -602,13 +613,27 @@ C_FLAGS=\
 	-c	\
 	-std=gnu99 \
 	--sysroot=$(NRF52_GCC_ROOT)/arm-none-eabi \
-	-ffunction-sections -fdata-sections -fno-strict-aliasing \
-	-fno-common \
-	-fomit-frame-pointer \
-	-fno-dwarf2-cfi-asm \
+	-fdata-sections \
+	-ffunction-sections \
+	-fmessage-length=0 \
 	-fno-builtin \
+	-fno-common \
+	-fno-diagnostics-show-caret \
+	-fno-dwarf2-cfi-asm \
+	-fno-strict-aliasing \
+	-fomit-frame-pointer \
+	-fshort-enums \
 	-gdwarf-3 \
-	-gpubnames
+	-gpubnames \
+	-mcpu=$(HWCPU) \
+	-mfloat-abi=hard \
+	-mlittle-endian \
+	-mfpu=fpv4-sp-d16 \
+	-mthumb	\
+	-mthumb-interwork	\
+	-mtp=soft \
+	-munaligned-access \
+	-nostdinc
 
 
 ifeq ($(DEBUG),1)
@@ -623,7 +648,7 @@ ifeq ($(DEBUG),1)
 	ASM_FLAGS += $(HW_DEBUG_OPT) -DDEBUG_NRF
 else
 	C_DEFINES += \
-		-DUSE_DEBUGGER_USBD=1 \
+		-DUSE_DEBUGGER_USBD=0 \
 		-DUSE_WATCHDOG=0 \
 		-Os
 	C_FLAGS += $(HW_OPT)
@@ -641,29 +666,17 @@ C_INCLUDES += $(DIRECTORIES)
 C_INCLUDES += $(foreach dir,$(INC_DIRS) $(SDK_GLUE_DIRS) $(XS_DIRS) $(LIB_DIR) $(TMP_DIR),-I$(call qs,$(dir)))
 
 
-C_FLAGS +=  \
-	-fmessage-length=0 \
-	-fno-diagnostics-show-caret \
-	-mcpu=$(HWCPU) \
-	-mlittle-endian \
-	-mfloat-abi=hard \
-	-mfpu=fpv4-sp-d16 \
-	-mthumb	\
-	-mthumb-interwork	\
-	-mtp=soft \
-	-munaligned-access \
-	-nostdinc
-
 # Nordic example apps are built with -fshort-enums
-C_FLAGS := -fshort-enums $(C_FLAGS)
 C_DEFINES := -fshort-enums $(C_DEFINES)
 
 C_FLAGS_NODATASECTION = $(C_FLAGS)
 
 ifeq ($(USE_QSPI),1)
 	LINKER_SCRIPT := $(PLATFORM_DIR)/config/qspi_xsproj.ld
+	QSPI_COUNT = $$q
 else
 	LINKER_SCRIPT := $(PLATFORM_DIR)/config/xsproj.ld
+	QSPI_COUNT = $$f
 endif
 
 # Utility functions
@@ -675,11 +688,18 @@ BUILD_DATE = $(call time_string,"%Y-%m-%d")
 BUILD_TIME = $(call time_string,"%H:%M:%S")
 MEM_USAGE = \
   'while (<>) { \
-      $$r += $$1 if /^\.(?:data|rodata|bss)\s+(\d+)/;\
-		  $$f += $$1 if /^\.(?:irom0\.text|text|data|rodata)\s+(\d+)/;\
+      $$h += $$1 if /^\.(?:heap)\s+(\d+)/;\
+	  $$r += $$1 if /^\.(?:no_init|data|fs_data|bss|stack_dummy)\s+(\d+)/;\
+	  $$f += $$1 if /^\.(?:text|sdh*|crypto*|nrf*|ARM.exidx)\s+(\d+)/;\
+	  ${QSPI_COUNT} += $$1 if /^\.(?:rodata.resources|xs_lib_flash)\s+(\d+)/;\
+	  $$x += $$1 if /^\.(?:rodata.resources|xs_lib_flash)\s+(\d+)/;\
 	 }\
+	$$f += ${SOFTDEVICE_ADDR} ; \
+	$$f += ${MOD_PREFS_SIZE} ; \
+	$$f += ${BOOTLOADER_SIZE} ; \
+	$$r += ${SOFTDEVICE_RAM} ; \
 	 print "\# Memory usage\n";\
-	 print sprintf("\#  %-6s %6d bytes\n" x 2 ."\n", "Ram:", $$r, "Flash:", $$f);'
+	 print sprintf("\#  %-6s %6d bytes\n" x 4 ."\n", "Ram:", $$r, "Heap:", $$h, "Flash:", $$f, "QSPI:", $$q);'
 
 VPATH += $(NRF_PATHS) $(SDK_GLUE_DIRS) $(XS_DIRS)
 
@@ -749,6 +769,7 @@ flash: precursor $(BIN_DIR)/xs_nrf52.hex
 	"$(NRFJPROG)" --reset
 
 debugger:
+	@echo Starting xsbug. Reset device to connect.
 	serial2xsbug $(DEBUGGER_PORT) $(DEBUGGER_SPEED) 8N1
 
 use_jlink: flash xsbug
@@ -787,6 +808,7 @@ installDFU: all dfu-package
 	adafruit-nrfutil --verbose dfu serial --package $(BIN_DIR)/dfu-package.zip -p $(NRF_SERIAL_PORT) -b $(UPLOAD_SPEED) --singlebank --touch 1200
 
 xsbug:
+	@echo Starting xsbug.
 	$(KILL_SERIAL_2_XSBUG)
 	$(DO_XSBUG)
 	$(CONNECT_XSBUG)

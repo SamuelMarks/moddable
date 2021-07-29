@@ -5,14 +5,16 @@
 		"DEBUGGER_SPEED": "460800",
 		"FTDI_TRACE": "-DUSE_FTDI_TRACE=0",
 		"QSPI_INI_PATH": "$(MODDABLE)/build/devices/nrf52/targets/brin2/QspiDefault.ini",
-		"QSPI_INI_PATH_WIN": "$(MODDABLE)\\build\\devices\\nrf52\\targets\\brin2\\QspiDefault.ini"
+		"QSPI_INI_PATH_WIN": "$(MODDABLE)\\build\\devices\\nrf52\\targets\\brin2\\QspiDefault.ini",
+		"HEAP_SIZE": "0x34900"
 	},
 	"include": [
 		"$(MODULES)/drivers/ili9341/manifest.json",
 		"$(MODULES)/pins/digital/monitor/manifest.json",
 		"$(MODULES)/drivers/button/manifest.json",
 		"$(MODULES)/drivers/led/manifest.json",
-		"$(MODULES)/files/preference/manifest.json"
+		"$(MODULES)/files/preference/manifest.json",
+		"$(MODULES)/pins/spis/manifest.json"
 	],
 	"modules": {
 		"setup/target": "./setup-target"
@@ -70,16 +72,20 @@
 			"pin": 39,
 			"on": 1,
 			"off": 0
+		},
+		"xserial": {
+			"tx_pin": 41,
+			"rx_pin": 40,
+			"baudrate": 115200
 		} 
-
 	},
 	"defines": {
 		"sleep": {
 			"shutdown_pins": [
 				"4, 5, ",
 				"37, 36, 6, ",
-				"33, 34, 35, 9, ",
-				"40, 41, 46, 32, 45, 30, ",
+				"33, 34, 35,  9, 10,",
+				"41, 40, 12, 11,  7,  8, ",
 				"15, 13, 14, 16, 25, 39, 38, ",
 				"19, 24, 20, 21, 22, 23, "
 			]
@@ -87,15 +93,16 @@
 		"display": {
 			"power_pin": "NRF_GPIO_PIN_MAP(1,6)"
 		},
+
 		"debugger": {
 			"tx_pin": "NRF_GPIO_PIN_MAP(0,4)",
 			"rx_pin": "NRF_GPIO_PIN_MAP(0,5)",
 			"baudrate": "NRF_UARTE_BAUDRATE_460800"
 		},
 		"xserial": {
-			"tx_pin": "NRF_GPIO_PIN_MAP(1, 8)",
-			"rx_pin": "NRF_GPIO_PIN_MAP(1, 9)",
-			"baudrate": "NRF_UARTE_BAUDRATE_921600"
+			"tx_pin": "NRF_GPIO_PIN_MAP(1,9)",
+			"rx_pin": "NRF_GPIO_PIN_MAP(1,8)",
+			"baudrate": "NRF_UARTE_BAUDRATE_115200"
 		},
 		"spi": {
 			"interface": "3",
@@ -104,6 +111,13 @@
 			"mosi_pin": "NRF_GPIO_PIN_MAP(0,15)",
 			"sck_pin": "NRF_GPIO_PIN_MAP(0,13)",
 			"high_power": 1
+		},
+		"spis": {
+			"miso_pin": "NRF_GPIO_PIN_MAP(0,12)",
+			"mosi_pin": "NRF_GPIO_PIN_MAP(0,11)",
+			"sck_pin": "NRF_GPIO_PIN_MAP(0,7)",
+			"cs_pin": "NRF_GPIO_PIN_MAP(0,8)",
+			"buffersize" : 64800
 		},
 		"ili9341": {
 			"spi_port": 3,
