@@ -12,12 +12,15 @@
  *
  */
 
+/* NOTE: The LSM303DLHC is essentially a LIS3DH and HMC5883 */
+
 import device from "embedded:provider/builtin";
-import { LSM303DLHC_Mag, LSM303DLHC_Accel, Config } from "embedded:sensor/Accelerometer-Magnetometer/LSM303DLHC";
+import LIS3DH from "embedded:sensor/Accelerometer/LIS3DH";
+import HMC5883 from "embedded:sensor/Magnetometer/HMC5883";
 import Timer from "timer";
 
 
-const mag_sensor = new LSM303DLHC_Mag({
+const mag_sensor = new HMC5883({
 	sensor: {
 		...device.I2C.default,
 		io: device.io.SMBus
@@ -25,23 +28,22 @@ const mag_sensor = new LSM303DLHC_Mag({
 });
 
 mag_sensor.configure({
-	rate: Config.Rate.RATE_15,
-	gain: Config.Gain.GAIN_1_3,
-	mode: Config.Mode.CONTINUOUS
+	rate: 0b100,		// RATE_15,
+	gain: 0b001,		// GAIN_1_3,
+	mode: 0				// CONTINUOUS
 });
 
-const accel_sensor = new LSM303DLHC_Accel({
+const accel_sensor = new LIS3DH({
 	sensor: {
 		...device.I2C.default,
+		address: 0x19,
 		io: device.io.SMBus
 	}
 });
 
 accel_sensor.configure({
-	rate: Config.DataRate.DATARATE_10_HZ,
-	enable: {
-		accel: Config.Features.ENABLE_X | Config.Features.ENABLE_Y | Config.Features_ENABLE_Z
-	}
+	rate: 2,		// DATARATE_10_HZ,
+	enable: 0b111	// ENABLE_X ENABLE_Y ENABLE_Z
 });
 
 Timer.repeat(() => {

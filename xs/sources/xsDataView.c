@@ -93,14 +93,12 @@ void fxArrayBuffer(txMachine* the, txSlot* slot, void* data, txInteger byteLengt
 	mxPush(mxArrayBufferPrototype);
 	instance = fxNewArrayBufferInstance(the);
 	arrayBuffer = instance->next;
-	if (byteLength) {
-		arrayBuffer->value.arrayBuffer.address = fxNewChunk(the, byteLength);
-		arrayBuffer->value.arrayBuffer.length = byteLength;
-		if (data != NULL)
-			c_memcpy(arrayBuffer->value.arrayBuffer.address, data, byteLength);
-		else
-			c_memset(arrayBuffer->value.arrayBuffer.address, 0, byteLength);
-	}
+	arrayBuffer->value.arrayBuffer.address = fxNewChunk(the, byteLength);
+	arrayBuffer->value.arrayBuffer.length = byteLength;
+	if (data != NULL)
+		c_memcpy(arrayBuffer->value.arrayBuffer.address, data, byteLength);
+	else
+		c_memset(arrayBuffer->value.arrayBuffer.address, 0, byteLength);
 	mxPullSlot(slot);
 }
 
@@ -1249,6 +1247,12 @@ void fx_TypedArray(txMachine* the)
 			if (dispatch == arrayDispatch)
 				c_memcpy(data->value.arrayBuffer.address + offset, arrayData->value.arrayBuffer.address + arrayOffset, size);
 			else {
+				txBoolean contentType = (dispatch->value.typedArray.dispatch->constructorID == _BigInt64Array)
+						|| (dispatch->value.typedArray.dispatch->constructorID == _BigUint64Array);
+				txBoolean arrayContentType = (arrayDispatch->value.typedArray.dispatch->constructorID == _BigInt64Array)
+						|| (arrayDispatch->value.typedArray.dispatch->constructorID == _BigUint64Array);
+				if (contentType != arrayContentType)
+					mxTypeError("incompatible content type");
 				mxPushUndefined();
 				while (offset < size) {
 					(*arrayDispatch->value.typedArray.dispatch->getter)(the, arrayData, arrayOffset, the->stack, EndianNative);
@@ -1536,8 +1540,10 @@ void fx_TypedArray_prototype_copyWithin(txMachine* the)
 	fxCheckArrayBufferDetached(the, buffer, XS_MUTABLE);
 	if (count > length - target)
 		count = length - target;
-	if (count > 0)
+	if (count > 0) {
 		c_memmove(address + (target * delta), address + (start * delta), count * delta);
+		mxMeterSome((txU4)count * 2);
+	}
 	mxResult->kind = mxThis->kind;
 	mxResult->value = mxThis->value;
 }
@@ -1910,6 +1916,7 @@ void fx_TypedArray_prototype_reverse(txMachine* the)
 			first += delta;
 			last -= delta;
 		}
+		mxMeterSome(length * 4);
 	}
 	mxResult->kind = mxThis->kind;
 	mxResult->value = mxThis->value;
@@ -1950,6 +1957,7 @@ void fx_TypedArray_prototype_set(txMachine* the)
 			mxTypeError("detached buffer");
 		if (dispatch == arrayDispatch) {
 			c_memcpy(data->value.arrayBuffer.address + offset, arrayData->value.arrayBuffer.address + arrayOffset, limit - offset);
+			mxMeterSome(((txU4)(limit - offset)) * 2);
 		}
 		else {
 			txInteger arrayDelta = 1 << shift;
@@ -2418,6 +2426,7 @@ void fxBigInt64Getter(txMachine* the, txSlot* data, txInteger offset, txSlot* sl
 #endif
 	value = IMPORT(S64);
 	fxFromBigInt64(the, slot, value);
+	mxMeterOne();
 }
 
 void fxBigInt64Setter(txMachine* the, txSlot* data, txInteger offset, txSlot* slot, int endian)
@@ -2429,6 +2438,7 @@ void fxBigInt64Setter(txMachine* the, txSlot* data, txInteger offset, txSlot* sl
 #else
 	*((txS8*)(data->value.arrayBuffer.address + offset)) = EXPORT(S64);
 #endif
+	mxMeterOne();
 }
 
 int fxBigUint64Compare(const void* p, const void* q)
@@ -2448,6 +2458,7 @@ void fxBigUint64Getter(txMachine* the, txSlot* data, txInteger offset, txSlot* s
 #endif
 	value = IMPORT(U64);
 	fxFromBigUint64(the, slot, value);
+	mxMeterOne();
 }
 
 void fxBigUint64Setter(txMachine* the, txSlot* data, txInteger offset, txSlot* slot, int endian)
@@ -2459,6 +2470,7 @@ void fxBigUint64Setter(txMachine* the, txSlot* data, txInteger offset, txSlot* s
 #else
 	*((txU8*)(data->value.arrayBuffer.address + offset)) = EXPORT(U64);
 #endif
+	mxMeterOne();
 }
 
 int fxFloat32Compare(const void* p, const void* q)
@@ -2485,6 +2497,7 @@ void fxFloat32Getter(txMachine* the, txSlot* data, txInteger offset, txSlot* slo
 	value = *((float*)(data->value.arrayBuffer.address + offset));
 #endif
 	slot->value.number = IMPORT(Float);
+	mxMeterOne();
 }
 
 void fxFloat32Setter(txMachine* the, txSlot* data, txInteger offset, txSlot* slot, int endian)
@@ -2496,6 +2509,7 @@ void fxFloat32Setter(txMachine* the, txSlot* data, txInteger offset, txSlot* slo
 #else
 	*((float*)(data->value.arrayBuffer.address + offset)) = EXPORT(Float);
 #endif
+	mxMeterOne();
 }
 
 int fxFloat64Compare(const void* p, const void* q)
@@ -2522,6 +2536,7 @@ void fxFloat64Getter(txMachine* the, txSlot* data, txInteger offset, txSlot* slo
 	value = *((double*)(data->value.arrayBuffer.address + offset));
 #endif
 	slot->value.number = IMPORT(Double);
+	mxMeterOne();
 }
 
 void fxFloat64Setter(txMachine* the, txSlot* data, txInteger offset, txSlot* slot, int endian)
@@ -2533,6 +2548,7 @@ void fxFloat64Setter(txMachine* the, txSlot* data, txInteger offset, txSlot* slo
 #else
 	*((double*)(data->value.arrayBuffer.address + offset)) = EXPORT(Double);
 #endif
+	mxMeterOne();
 }
 
 void fxIntCoerce(txMachine* the, txSlot* slot)
@@ -2556,11 +2572,13 @@ void fxInt8Getter(txMachine* the, txSlot* data, txInteger offset, txSlot* slot, 
 {
 	slot->kind = XS_INTEGER_KIND;
 	slot->value.integer = *((txS1*)(data->value.arrayBuffer.address + offset));
+	mxMeterOne();
 }
 
 void fxInt8Setter(txMachine* the, txSlot* data, txInteger offset, txSlot* slot, int endian)
 {
 	*((txS1*)(data->value.arrayBuffer.address + offset)) = (txS1)slot->value.integer;
+	mxMeterOne();
 }
 
 int fxInt16Compare(const void* p, const void* q)
@@ -2580,6 +2598,7 @@ void fxInt16Getter(txMachine* the, txSlot* data, txInteger offset, txSlot* slot,
 	value = *((txS2*)(data->value.arrayBuffer.address + offset));
 #endif
 	slot->value.integer = IMPORT(S16);
+	mxMeterOne();
 }
 
 void fxInt16Setter(txMachine* the, txSlot* data, txInteger offset, txSlot* slot, int endian)
@@ -2591,6 +2610,7 @@ void fxInt16Setter(txMachine* the, txSlot* data, txInteger offset, txSlot* slot,
 #else
 	*((txS2*)(data->value.arrayBuffer.address + offset)) = EXPORT(S16);
 #endif
+	mxMeterOne();
 }
 
 int fxInt32Compare(const void* p, const void* q)
@@ -2610,6 +2630,7 @@ void fxInt32Getter(txMachine* the, txSlot* data, txInteger offset, txSlot* slot,
 	value = *((txS4*)(data->value.arrayBuffer.address + offset));
 #endif
 	slot->value.integer = IMPORT(S32);
+	mxMeterOne();
 }
 
 void fxInt32Setter(txMachine* the, txSlot* data, txInteger offset, txSlot* slot, int endian)
@@ -2621,6 +2642,7 @@ void fxInt32Setter(txMachine* the, txSlot* data, txInteger offset, txSlot* slot,
 #else
 	*((txS4*)(data->value.arrayBuffer.address + offset)) = EXPORT(S32);
 #endif
+	mxMeterOne();
 }
 
 int fxUint8Compare(const void* p, const void* q)
@@ -2634,12 +2656,14 @@ void fxUint8Getter(txMachine* the, txSlot* data, txInteger offset, txSlot* slot,
 {
 	slot->kind = XS_INTEGER_KIND;
 	slot->value.integer = c_read8((txU1*)(data->value.arrayBuffer.address + offset));
+	mxMeterOne();
 }
 
 void fxUint8Setter(txMachine* the, txSlot* data, txInteger offset, txSlot* slot, int endian)
 {
 	txUnsigned tmp = (slot->kind == XS_INTEGER_KIND) ? (txUnsigned)slot->value.integer : (txUnsigned)slot->value.number;
 	*((txU1*)(data->value.arrayBuffer.address + offset)) = (txU1)tmp;
+	mxMeterOne();
 }
 
 int fxUint16Compare(const void* p, const void* q)
@@ -2659,6 +2683,7 @@ void fxUint16Getter(txMachine* the, txSlot* data, txInteger offset, txSlot* slot
 	value = *((txU2*)(data->value.arrayBuffer.address + offset));
 #endif
 	slot->value.integer = IMPORT(U16);
+	mxMeterOne();
 }
 
 void fxUint16Setter(txMachine* the, txSlot* data, txInteger offset, txSlot* slot, int endian)
@@ -2671,6 +2696,7 @@ void fxUint16Setter(txMachine* the, txSlot* data, txInteger offset, txSlot* slot
 #else
 	*((txU2*)(data->value.arrayBuffer.address + offset)) = EXPORT(U16);
 #endif
+	mxMeterOne();
 }
 
 int fxUint32Compare(const void* p, const void* q)
@@ -2696,6 +2722,7 @@ void fxUint32Getter(txMachine* the, txSlot* data, txInteger offset, txSlot* slot
 		slot->kind = XS_NUMBER_KIND;
 		slot->value.number = value;
 	}
+	mxMeterOne();
 }
 
 void fxUint32Setter(txMachine* the, txSlot* data, txInteger offset, txSlot* slot, int endian)
@@ -2707,6 +2734,7 @@ void fxUint32Setter(txMachine* the, txSlot* data, txInteger offset, txSlot* slot
 #else
 	*((txU4*)(data->value.arrayBuffer.address + offset)) = EXPORT(U32);
 #endif
+	mxMeterOne();
 }
 
 void fxUint8ClampedSetter(txMachine* the, txSlot* data, txInteger offset, txSlot* slot, int endian)
@@ -2721,5 +2749,6 @@ void fxUint8ClampedSetter(txMachine* the, txSlot* data, txInteger offset, txSlot
 	else
 		value = c_nearbyint(value);
 	*((txU1*)(data->value.arrayBuffer.address + offset)) = (txU1)value;
+	mxMeterOne();
 }
 
